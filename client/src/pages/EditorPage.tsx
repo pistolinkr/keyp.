@@ -47,7 +47,8 @@ const AI_SUGGESTIONS_KO: AISuggestion[] = [
 ];
 
 export default function EditorPage() {
-  const { lang, setLang } = useLanguage();
+  const { lang: globalLang } = useLanguage();
+  const [postingLang, setPostingLang] = useState<'ko' | 'en'>(globalLang);
   const [title, setTitle] = useState('');
   const [titleEn, setTitleEn] = useState('');
   const [content, setContent] = useState('');
@@ -62,12 +63,14 @@ export default function EditorPage() {
   const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([
     {
       role: 'ai',
-      text: '안녕하세요! 글쓰기를 도와드릴게요. 아래에 AI 제안이 표시됩니다. Apply 버튼을 눌러야만 내용이 반영됩니다.',
+      text: postingLang === 'ko'
+        ? '안녕하세요! 글쓰기를 도와드릴게요. 아래에 AI 제안이 표시됩니다. Apply 버튼을 눌러야만 내용이 반영됩니다.'
+        : 'Hello! I can help with writing. AI suggestions appear below and are applied only when you click Apply.',
     },
   ]);
   const applySuggestion = (id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, applied: true } : s));
-    toast('AI 제안이 적용되었습니다');
+    toast(postingLang === 'ko' ? 'AI 제안이 적용되었습니다' : 'AI suggestion applied');
   };
 
   const handleAiSend = () => {
@@ -79,13 +82,17 @@ export default function EditorPage() {
     setTimeout(() => {
       setAiMessages(prev => [...prev, {
         role: 'ai',
-        text: '분석 중입니다. 글의 구조와 내용을 검토하여 개선 제안을 아래에 추가했습니다. Apply 버튼으로만 적용됩니다.',
+        text: postingLang === 'ko'
+          ? '분석 중입니다. 글의 구조와 내용을 검토하여 개선 제안을 아래에 추가했습니다. Apply 버튼으로만 적용됩니다.'
+          : 'Analyzing now. I reviewed your structure and content and added improvement suggestions below. They apply only through the Apply button.',
       }]);
       setSuggestions(prev => [...prev, {
         id: `ai${Date.now()}`,
         type: 'improve',
         original: userMsg,
-        suggestion: `"${userMsg}"에 대한 AI 제안: 이 부분을 더 명확하게 표현하기 위해 구체적인 예시나 데이터를 추가하는 것을 권장합니다.`,
+        suggestion: postingLang === 'ko'
+          ? `"${userMsg}"에 대한 AI 제안: 이 부분을 더 명확하게 표현하기 위해 구체적인 예시나 데이터를 추가하는 것을 권장합니다.`
+          : `AI suggestion for "${userMsg}": consider adding concrete examples or data to make this section clearer.`,
         applied: false,
       }]);
     }, 1000);
@@ -103,7 +110,7 @@ export default function EditorPage() {
           <Link href="/feed">
             <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ChevronLeft size={16} />
-              {lang === 'ko' ? '취소' : 'Cancel'}
+              {globalLang === 'ko' ? '취소' : 'Cancel'}
             </button>
           </Link>
 
@@ -120,16 +127,16 @@ export default function EditorPage() {
             onClick={() => setShowPreview(!showPreview)}
           >
             {showPreview ? <EyeOff size={13} /> : <Eye size={13} />}
-            {lang === 'ko' ? '미리보기' : 'Preview'}
+            {globalLang === 'ko' ? '미리보기' : 'Preview'}
           </button>
 
           {/* Save draft */}
           <button
             className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-xs text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
-            onClick={() => toast(lang === 'ko' ? '임시저장 완료' : 'Draft saved')}
+            onClick={() => toast(globalLang === 'ko' ? '임시저장 완료' : 'Draft saved')}
           >
             <Save size={13} />
-            {lang === 'ko' ? '임시저장' : 'Save Draft'}
+            {globalLang === 'ko' ? '임시저장' : 'Save Draft'}
           </button>
 
           {/* Publish */}
@@ -137,14 +144,14 @@ export default function EditorPage() {
             className="keyp-btn-primary flex items-center gap-1.5 text-xs px-4 py-1.5"
             onClick={() => {
               if (!title || !plainText.trim() || !category) {
-                toast.error(lang === 'ko' ? '제목, 내용, 카테고리를 입력해주세요' : 'Please fill in title, content, and category');
+                toast.error(globalLang === 'ko' ? '제목, 내용, 카테고리를 입력해주세요' : 'Please fill in title, content, and category');
                 return;
               }
-              toast.success(lang === 'ko' ? '게시글이 발행되었습니다!' : 'Post published!');
+              toast.success(globalLang === 'ko' ? '게시글이 발행되었습니다!' : 'Post published!');
             }}
           >
             <Check size={13} />
-            {lang === 'ko' ? '발행하기' : 'Publish'}
+            {globalLang === 'ko' ? '발행하기' : 'Publish'}
           </button>
         </div>
 
@@ -153,13 +160,13 @@ export default function EditorPage() {
           {/* Language tabs for bilingual fields */}
           <div className="flex items-center gap-3 mb-6">
             <div className="keyp-lang-toggle">
-              <button className={lang === 'ko' ? 'active' : ''} onClick={() => setLang('ko')}>KO</button>
-              <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>EN</button>
+              <button className={postingLang === 'ko' ? 'active' : ''} onClick={() => setPostingLang('ko')}>KO</button>
+              <button className={postingLang === 'en' ? 'active' : ''} onClick={() => setPostingLang('en')}>EN</button>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Globe size={12} />
               <span className="font-mono">
-                {lang === 'ko' ? '한국어로 작성 중' : 'Writing in English'}
+                {postingLang === 'ko' ? '한국어로 작성 중' : 'Writing in English'}
               </span>
             </div>
           </div>
@@ -168,9 +175,9 @@ export default function EditorPage() {
           <div className="mb-4">
             <input
               type="text"
-              value={lang === 'ko' ? title : titleEn}
-              onChange={(e) => lang === 'ko' ? setTitle(e.target.value) : setTitleEn(e.target.value)}
-              placeholder={lang === 'ko' ? '제목을 입력하세요...' : 'Enter title...'}
+              value={postingLang === 'ko' ? title : titleEn}
+              onChange={(e) => postingLang === 'ko' ? setTitle(e.target.value) : setTitleEn(e.target.value)}
+              placeholder={postingLang === 'ko' ? '제목을 입력하세요...' : 'Enter title...'}
               className="w-full bg-transparent border-b-2 border-border focus:border-foreground text-2xl md:text-3xl font-black py-3 focus:outline-none transition-colors placeholder:text-muted-foreground/50"
               style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em' }}
             />
@@ -184,10 +191,10 @@ export default function EditorPage() {
               onChange={(e) => setCategory(e.target.value)}
               className="bg-muted border border-border px-3 py-1.5 text-sm focus:outline-none focus:border-primary transition-colors text-foreground"
             >
-              <option value="">{lang === 'ko' ? '카테고리 선택' : 'Select Category'}</option>
+              <option value="">{postingLang === 'ko' ? '카테고리 선택' : 'Select Category'}</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {lang === 'ko' ? cat.label : cat.labelEn}
+                  {postingLang === 'ko' ? cat.label : cat.labelEn}
                 </option>
               ))}
             </select>
@@ -198,9 +205,9 @@ export default function EditorPage() {
               onChange={(e) => setDifficulty(e.target.value as any)}
               className="bg-muted border border-border px-3 py-1.5 text-sm focus:outline-none focus:border-primary transition-colors text-foreground"
             >
-              <option value="beginner">{lang === 'ko' ? '입문' : 'Beginner'}</option>
-              <option value="intermediate">{lang === 'ko' ? '중급' : 'Intermediate'}</option>
-              <option value="advanced">{lang === 'ko' ? '심화' : 'Advanced'}</option>
+              <option value="beginner">{postingLang === 'ko' ? '입문' : 'Beginner'}</option>
+              <option value="intermediate">{postingLang === 'ko' ? '중급' : 'Intermediate'}</option>
+              <option value="advanced">{postingLang === 'ko' ? '심화' : 'Advanced'}</option>
             </select>
 
             {/* Tags */}
@@ -208,7 +215,7 @@ export default function EditorPage() {
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder={lang === 'ko' ? '태그 (쉼표로 구분)' : 'Tags (comma separated)'}
+              placeholder={postingLang === 'ko' ? '태그 (쉼표로 구분)' : 'Tags (comma separated)'}
               className="flex-1 min-w-32 bg-muted border border-border px-3 py-1.5 text-sm focus:outline-none focus:border-primary transition-colors"
             />
           </div>
@@ -222,7 +229,7 @@ export default function EditorPage() {
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               }`}
               onClick={() => setShowAI(!showAI)}
-              title={lang === 'ko' ? 'AI 보조 패널 열기/닫기' : 'Toggle AI Assistant'}
+              title={postingLang === 'ko' ? 'AI 보조 패널 열기/닫기' : 'Toggle AI Assistant'}
             >
               <Sparkles size={15} />
             </button>
@@ -237,7 +244,7 @@ export default function EditorPage() {
             <div
               className="prose-keyp min-h-64"
               dangerouslySetInnerHTML={{
-                __html: content || `<p class="text-muted-foreground">${lang === 'ko' ? '내용을 입력하면 미리보기가 표시됩니다.' : 'Preview will appear when you start writing.'}</p>`,
+                __html: content || `<p class="text-muted-foreground">${postingLang === 'ko' ? '내용을 입력하면 미리보기가 표시됩니다.' : 'Preview will appear when you start writing.'}</p>`,
               }}
             />
           ) : (
@@ -256,16 +263,16 @@ export default function EditorPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[
                 {
-                  title: lang === 'ko' ? '구조화된 글쓰기' : 'Structured Writing',
-                  desc: lang === 'ko' ? '## 헤딩으로 섹션을 명확히 구분하세요' : 'Use ## headings to clearly divide sections'
+                  title: postingLang === 'ko' ? '구조화된 글쓰기' : 'Structured Writing',
+                  desc: postingLang === 'ko' ? '## 헤딩으로 섹션을 명확히 구분하세요' : 'Use ## headings to clearly divide sections'
                 },
                 {
-                  title: lang === 'ko' ? '이중 언어 지원' : 'Bilingual Support',
-                  desc: lang === 'ko' ? 'KO/EN 탭으로 두 언어 버전을 작성하세요' : 'Write both language versions with KO/EN tabs'
+                  title: postingLang === 'ko' ? '이중 언어 지원' : 'Bilingual Support',
+                  desc: postingLang === 'ko' ? 'KO/EN 탭으로 두 언어 버전을 작성하세요' : 'Write both language versions with KO/EN tabs'
                 },
                 {
-                  title: lang === 'ko' ? 'AI 어시스턴트' : 'AI Assistant',
-                  desc: lang === 'ko' ? 'AI 제안은 Apply 버튼으로만 적용됩니다' : 'AI suggestions apply only via the Apply button'
+                  title: postingLang === 'ko' ? 'AI 어시스턴트' : 'AI Assistant',
+                  desc: postingLang === 'ko' ? 'AI 제안은 Apply 버튼으로만 적용됩니다' : 'AI suggestions apply only via the Apply button'
                 },
               ].map((tip, i) => (
                 <div key={i} className="p-3 bg-muted border border-border">
@@ -286,7 +293,7 @@ export default function EditorPage() {
             <div className="flex items-center gap-2">
               <Sparkles size={15} className="text-primary" />
               <span className="text-sm font-semibold">
-                {lang === 'ko' ? 'AI 글쓰기 보조' : 'AI Write Assistant'}
+                {postingLang === 'ko' ? 'AI 글쓰기 보조' : 'AI Write Assistant'}
               </span>
             </div>
             <button
@@ -300,7 +307,7 @@ export default function EditorPage() {
           {/* Non-invasive notice */}
           <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
             <p className="font-mono text-xs text-amber-700 dark:text-amber-400">
-              ⚠ {lang === 'ko'
+              ⚠ {postingLang === 'ko'
                 ? 'AI 제안은 자동 반영되지 않습니다. Apply 버튼으로만 적용됩니다.'
                 : 'AI suggestions are NOT auto-applied. Use Apply button only.'}
             </p>
@@ -372,7 +379,7 @@ export default function EditorPage() {
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAiSend()}
-                placeholder={lang === 'ko' ? 'AI에게 요청하세요...' : 'Ask AI...'}
+                placeholder={postingLang === 'ko' ? 'AI에게 요청하세요...' : 'Ask AI...'}
                 className="flex-1 bg-muted border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary transition-colors"
               />
               <button

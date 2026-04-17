@@ -264,7 +264,7 @@ export default function FeedPage() {
   return (
     <div className="flex min-h-screen">
       {/* ─── MAIN FEED ─── */}
-      <div className="relative flex-1 min-w-0 xl:before:content-[''] xl:before:absolute xl:before:right-0 xl:before:top-0 xl:before:h-full xl:before:w-px xl:before:bg-border">
+      <div className="relative flex-1 min-w-0 xl:before:content-[''] xl:before:absolute xl:before:right-0 xl:before:top-0 xl:before:h-full xl:before:w-[0.5px] xl:before:bg-border">
         {/* Feed header */}
         <div className="sticky top-14 z-30 bg-background border-b border-border">
           {/* Category tabs */}

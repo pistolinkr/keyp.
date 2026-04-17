@@ -13,6 +13,7 @@ import { toast } from "sonner";
 const HERO_BANNER = "https://d2xsxph8kpxj0f.cloudfront.net/310519663440167945/Jji6NfGi9ZRd2BD8ESyw5F/keyp-hero-banner-CgBiVkSAWxcq7r6YNShYJd.webp";
 const CORE_COLOR_2026 = "rgb(245, 220, 74)";
 const CORE_TEXT_COLOR_2026 = "rgb(196, 164, 30)";
+const LIGHT_THEME_TREND_COLOR_2026 = "#e9a91f";
 const TREND_KEYWORDS_2026 = [
   "휴먼인더루프",
   "필코노미",
@@ -88,7 +89,6 @@ export default function LandingPage() {
       tagline: '지식은 공유될 때 완성된다',
       subtitle: 'Keyp.는 한국인과 세계를 연결하는 교육형 지식 커뮤니티입니다.\nMedium의 깊이 있는 읽기 경험과 Reddit의 구조적 토론을 결합했습니다.',
       cta: '지금 시작하기',
-      ctaSub: '무료로 참여하세요',
       trendTitle: "2026 트렌드 리포트",
       trendSubtitle: "트렌드 코리아 2026 도서에서 볼 수 있는 2026년의 트렌드 키워드입니다.",
       features: [
@@ -110,7 +110,6 @@ export default function LandingPage() {
       tagline: 'Knowledge is complete when shared',
       subtitle: "Keyp. is an educational knowledge community connecting Koreans and the world.\nCombining Medium's deep reading experience with Reddit's structured discussion.",
       cta: 'Get Started',
-      ctaSub: 'Join for free',
       trendTitle: "2026 Trend Report",
       trendSubtitle: "A static feature highlighting major shifts across technology, consumption, and organizational design.",
       features: [
@@ -131,6 +130,8 @@ export default function LandingPage() {
   };
 
   const c = content[lang];
+  const trendHeadingColor = theme === "light" ? LIGHT_THEME_TREND_COLOR_2026 : CORE_COLOR_2026;
+  const trendKeywordColor = theme === "light" ? LIGHT_THEME_TREND_COLOR_2026 : CORE_TEXT_COLOR_2026;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -204,7 +205,6 @@ export default function LandingPage() {
                       <ArrowRight size={16} />
                     </button>
                   </Link>
-                  <span className="text-sm text-muted-foreground font-mono">{c.ctaSub}</span>
                 </div>
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function LandingPage() {
       {/* ─── 2026 TREND SPECIAL ─── */}
       <section className="max-w-6xl mx-auto px-6 py-20">
         <div className="mb-10">
-          <p className="keyp-section-label mb-3" style={{ color: CORE_COLOR_2026 }}>2026 TREND SPECIAL</p>
+          <p className="keyp-section-label mb-3" style={{ color: trendHeadingColor }}>2026 TREND SPECIAL</p>
           <h2
             className="text-3xl md:text-4xl font-black text-foreground mb-4"
             style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em' }}
@@ -257,7 +257,7 @@ export default function LandingPage() {
                   letterSpacing: '-0.02em',
                   borderColor: "rgba(245, 220, 74, 0.45)",
                   backgroundColor: "rgba(245, 220, 74, 0.14)",
-                  color: CORE_TEXT_COLOR_2026,
+                  color: trendKeywordColor,
                 }}
               >
                 {keyword}
@@ -271,7 +271,7 @@ export default function LandingPage() {
             <article key={item.keyword} className="border-r border-b border-border p-6 md:p-7">
               <h3
                 className="text-2xl md:text-3xl font-black mb-3 text-foreground"
-                style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em', color: CORE_COLOR_2026 }}
+                style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em', color: trendHeadingColor }}
               >
                 {item.keyword}
               </h3>
