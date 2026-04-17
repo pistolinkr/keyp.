@@ -4,15 +4,15 @@
  * Layout: Full-width editor + Right AI panel (independent, non-invasive)
  * Features: Markdown editor, AI suggestions (manual apply only), bilingual fields
  */
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { categories, currentSeason } from "@/lib/mockData";
 import {
-  ChevronLeft, Sparkles, X, Send, Check, Bold, Italic,
-  List, Quote, Code, Eye, EyeOff, Save, Globe
+  ChevronLeft, Sparkles, X, Send, Check, Eye, EyeOff, Save, Globe
 } from "lucide-react";
 import { toast } from "sonner";
+import Editor from "@/components/editor/Editor";
 
 interface AISuggestion {
   id: string;
@@ -21,14 +21,6 @@ interface AISuggestion {
   suggestion: string;
   applied: boolean;
 }
-
-const TOOLBAR_ITEMS = [
-  { icon: Bold, label: 'Bold', syntax: '**텍스트**' },
-  { icon: Italic, label: 'Italic', syntax: '*텍스트*' },
-  { icon: List, label: 'List', syntax: '\n- 항목' },
-  { icon: Quote, label: 'Quote', syntax: '\n> 인용문' },
-  { icon: Code, label: 'Code', syntax: '`코드`' },
-];
 
 const AI_SUGGESTIONS_KO: AISuggestion[] = [
   {
@@ -66,27 +58,13 @@ export default function EditorPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [suggestions, setSuggestions] = useState<AISuggestion[]>(AI_SUGGESTIONS_KO);
+  const [plainText, setPlainText] = useState("");
   const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([
     {
       role: 'ai',
       text: '안녕하세요! 글쓰기를 도와드릴게요. 아래에 AI 제안이 표시됩니다. Apply 버튼을 눌러야만 내용이 반영됩니다.',
     },
   ]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const insertSyntax = (syntax: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const newContent = content.substring(0, start) + syntax + content.substring(end);
-    setContent(newContent);
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + syntax.length, start + syntax.length);
-    }, 0);
-  };
-
   const applySuggestion = (id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, applied: true } : s));
     toast('AI 제안이 적용되었습니다');
@@ -113,8 +91,8 @@ export default function EditorPage() {
     }, 1000);
   };
 
-  const wordCount = content.split(/\s+/).filter(Boolean).length;
-  const charCount = content.length;
+  const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+  const charCount = plainText.length;
 
   return (
     <div className="flex min-h-screen">
@@ -158,7 +136,7 @@ export default function EditorPage() {
           <button
             className="keyp-btn-primary flex items-center gap-1.5 text-xs px-4 py-1.5"
             onClick={() => {
-              if (!title || !content || !category) {
+              if (!title || !plainText.trim() || !category) {
                 toast.error(lang === 'ko' ? '제목, 내용, 카테고리를 입력해주세요' : 'Please fill in title, content, and category');
                 return;
               }
@@ -237,17 +215,6 @@ export default function EditorPage() {
 
           {/* Toolbar */}
           <div className="flex items-center gap-1 mb-3 pb-3 border-b border-border">
-            {TOOLBAR_ITEMS.map((item) => (
-              <button
-                key={item.label}
-                className="p-2 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-                onClick={() => insertSyntax(item.syntax)}
-                title={item.label}
-              >
-                <item.icon size={15} />
-              </button>
-            ))}
-            <div className="w-px h-5 bg-border mx-1" />
             <button
               className={`p-2 transition-colors ${
                 showAI
@@ -270,28 +237,16 @@ export default function EditorPage() {
             <div
               className="prose-keyp min-h-64"
               dangerouslySetInnerHTML={{
-                __html: content
-                  .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-                  .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-                  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                  .replace(/`(.+?)`/g, '<code>$1</code>')
-                  .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-                  .replace(/\n\n/g, '</p><p>')
-                  .replace(/^/, '<p>')
-                  .replace(/$/, '</p>') || `<p class="text-muted-foreground">${lang === 'ko' ? '내용을 입력하면 미리보기가 표시됩니다.' : 'Preview will appear when you start writing.'}</p>`
+                __html: content || `<p class="text-muted-foreground">${lang === 'ko' ? '내용을 입력하면 미리보기가 표시됩니다.' : 'Preview will appear when you start writing.'}</p>`,
               }}
             />
           ) : (
-            <textarea
-              ref={textareaRef}
+            <Editor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={lang === 'ko'
-                ? '## 들어가며\n\n내용을 입력하세요. 마크다운을 지원합니다.\n\n## 본론\n\n...'
-                : '## Introduction\n\nStart writing your content. Markdown is supported.\n\n## Main Body\n\n...'}
-              className="w-full min-h-96 bg-transparent focus:outline-none resize-none text-base leading-relaxed placeholder:text-muted-foreground/40"
-              style={{ fontFamily: 'Noto Serif KR, Georgia, serif', lineHeight: '1.8' }}
+              onChange={(html, text) => {
+                setContent(html);
+                setPlainText(text);
+              }}
             />
           )}
 

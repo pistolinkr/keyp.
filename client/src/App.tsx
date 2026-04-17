@@ -18,6 +18,7 @@ import ProfilePage from "./pages/ProfilePage";
 import SearchPage from "./pages/SearchPage";
 import SeasonPage from "./pages/SeasonPage";
 import LandingPage from "./pages/LandingPage";
+import TroubleshootingPage from "./pages/TroubleshootingPage";
 
 function Router() {
   return (
@@ -72,6 +73,7 @@ function Router() {
           </MainLayout>
         )}
       </Route>
+      <Route path="/guide4-stuck-man" component={TroubleshootingPage} />
       <Route component={NotFound} />
     </Switch>
   );

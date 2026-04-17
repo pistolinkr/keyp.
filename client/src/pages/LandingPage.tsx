@@ -90,7 +90,7 @@ export default function LandingPage() {
       cta: '지금 시작하기',
       ctaSub: '무료로 참여하세요',
       trendTitle: "2026 트렌드 리포트",
-      trendSubtitle: "기술·소비·조직 변화의 핵심 키워드를 한눈에 정리한 정적 특집 기사입니다.",
+      trendSubtitle: "트렌드 코리아 2026 도서에서 볼 수 있는 2026년의 트렌드 키워드입니다.",
       features: [
         { icon: BookOpen, title: '깊이 있는 글쓰기', desc: '시즌제로 운영되는 지식 아카이브. 매년 새롭게 시작하는 지식의 여정.' },
         { icon: MessageSquare, title: '구조적 토론', desc: 'Reddit 스타일의 재귀적 댓글 스레드. 복잡한 논의도 명확하게 추적.' },
