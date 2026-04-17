@@ -1,0 +1,572 @@
+/*
+ * KEYP. DESIGN SYSTEM — Sharp Editorial Intelligence
+ * Philosophy: 날카로운 직각 기하학, 강한 타이포그래피 위계, 이중 언어 우선 설계
+ * Light: #f1f0ec (Paper White) + #111111 (Ink Black) + #e9a91f (Season 2026 Core)
+ * Dark: rgb(33,33,33) + #e5e5e5 (Soft White) + rgb(245,220,74) (Season 2026 Core)
+ * Typography: Noto Sans KR (UI) + Noto Serif KR (Body) + JetBrains Mono (Code)
+ * Border Radius: 0px (sharp) — no rounded corners
+ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 2px;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ─── LIGHT THEME ─── */
+:root {
+  --radius: 0px;
+  --keyp-core-rgb: 233, 169, 31; /* #e9a91f for light theme visibility */
+
+  /* Core Colors */
+  --background: oklch(0.958 0.006 80);        /* #f1f0ec paper white */
+  --foreground: oklch(0.12 0.005 30);          /* #111111 ink black */
+  --card: oklch(0.97 0.004 80);                /* slightly lighter paper */
+  --card-foreground: oklch(0.12 0.005 30);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.12 0.005 30);
+
+  /* Primary — Season 2026 Core */
+  --primary: rgb(var(--keyp-core-rgb));
+  --primary-foreground: oklch(0.16 0.01 90);
+
+  /* Secondary */
+  --secondary: oklch(0.93 0.005 80);           /* warm light gray */
+  --secondary-foreground: oklch(0.25 0.005 30);
+
+  /* Muted */
+  --muted: oklch(0.91 0.006 80);
+  --muted-foreground: oklch(0.50 0.008 30);    /* medium gray */
+
+  /* Accent */
+  --accent: oklch(0.93 0.005 80);
+  --accent-foreground: oklch(0.12 0.005 30);
+
+  /* Destructive */
+  --destructive: oklch(0.55 0.22 27);          /* #dc2626 red */
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* Border & Input */
+  --border: oklch(0.83 0.008 80);              /* #d4d0c8 warm border */
+  --input: oklch(0.83 0.008 80);
+  --ring: rgb(var(--keyp-core-rgb));
+
+  /* Sidebar */
+  --sidebar: oklch(0.945 0.007 80);
+  --sidebar-foreground: oklch(0.12 0.005 30);
+  --sidebar-primary: rgb(var(--keyp-core-rgb));
+  --sidebar-primary-foreground: oklch(0.16 0.01 90);
+  --sidebar-accent: oklch(0.91 0.006 80);
+  --sidebar-accent-foreground: oklch(0.12 0.005 30);
+  --sidebar-border: oklch(0.83 0.008 80);
+  --sidebar-ring: rgb(var(--keyp-core-rgb));
+
+  /* Custom Keyp. Tokens */
+  --keyp-paper: #f1f0ec;
+  --keyp-ink: #111111;
+  --keyp-cobalt: rgb(var(--keyp-core-rgb));
+  --keyp-cobalt-hover: #d99818;
+  --keyp-warm-border: #d4d0c8;
+  --keyp-muted-text: #666259;
+  --keyp-success: #16a34a;
+  --keyp-warning: #d97706;
+  --keyp-season: #7c3aed;
+}
+
+/* ─── DARK THEME ─── */
+.dark {
+  --keyp-core-rgb: 245, 220, 74;
+  --background: oklch(0.22 0.004 260);         /* rgb(33,33,33) */
+  --foreground: oklch(0.90 0.004 80);          /* #e5e5e5 soft white */
+  --card: oklch(0.26 0.004 260);
+  --card-foreground: oklch(0.90 0.004 80);
+  --popover: oklch(0.26 0.004 260);
+  --popover-foreground: oklch(0.90 0.004 80);
+
+  /* Primary — Season 2026 Core (dark mode) */
+  --primary: rgb(var(--keyp-core-rgb));
+  --primary-foreground: oklch(0.14 0.01 90);
+
+  --secondary: oklch(0.30 0.004 260);
+  --secondary-foreground: oklch(0.80 0.004 80);
+
+  --muted: oklch(0.30 0.004 260);
+  --muted-foreground: oklch(0.65 0.006 80);
+
+  --accent: oklch(0.30 0.004 260);
+  --accent-foreground: oklch(0.90 0.004 80);
+
+  --destructive: oklch(0.65 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(1 0 0 / 0.10);
+  --input: oklch(1 0 0 / 0.12);
+  --ring: rgb(var(--keyp-core-rgb));
+
+  --sidebar: oklch(0.24 0.004 260);
+  --sidebar-foreground: oklch(0.90 0.004 80);
+  --sidebar-primary: rgb(var(--keyp-core-rgb));
+  --sidebar-primary-foreground: oklch(0.14 0.01 90);
+  --sidebar-accent: oklch(0.30 0.004 260);
+  --sidebar-accent-foreground: oklch(0.90 0.004 80);
+  --sidebar-border: oklch(1 0 0 / 0.10);
+  --sidebar-ring: rgb(var(--keyp-core-rgb));
+
+  /* Custom Keyp. Tokens — Dark */
+  --keyp-paper: #212121;
+  --keyp-ink: #e5e5e5;
+  --keyp-cobalt: rgb(var(--keyp-core-rgb));
+  --keyp-cobalt-hover: rgb(236, 212, 66);
+  --keyp-warm-border: rgba(255, 255, 255, 0.10);
+  --keyp-muted-text: #9b9590;
+  --keyp-success: #22c55e;
+  --keyp-warning: #f59e0b;
+  --keyp-season: #a78bfa;
+}
+
+/* ─── BASE LAYER ─── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* Sharp borders — no radius */
+  *, *::before, *::after {
+    border-radius: 0 !important;
+  }
+
+  /* Allow minimal radius only for specific elements */
+  .rounded-full {
+    border-radius: 9999px !important;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  select:not(:disabled) {
+    @apply cursor-pointer;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--keyp-warm-border);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--keyp-muted-text);
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(var(--keyp-core-rgb), 0.28);
+    color: inherit;
+  }
+  .dark ::selection {
+    background: rgba(var(--keyp-core-rgb), 0.34);
+  }
+}
+
+/* ─── TYPOGRAPHY ─── */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+
+  /* Article body typography */
+  .prose-keyp {
+    font-family: 'Noto Serif KR', 'Georgia', serif;
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--foreground);
+    letter-spacing: 0.01em;
+  }
+
+  .dark .prose-keyp {
+    color: var(--foreground);
+  }
+
+  .prose-keyp p {
+    margin-bottom: 1.5em;
+  }
+
+  .prose-keyp h2 {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 1.4em;
+    font-weight: 700;
+    margin-top: 2.5em;
+    margin-bottom: 0.75em;
+    letter-spacing: -0.02em;
+  }
+
+  .prose-keyp h3 {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 1.15em;
+    font-weight: 600;
+    margin-top: 2em;
+    margin-bottom: 0.5em;
+  }
+
+  .prose-keyp blockquote {
+    border-left: 3px solid var(--keyp-cobalt);
+    padding-left: 1.25em;
+    margin-left: 0;
+    color: var(--keyp-muted-text);
+    font-style: italic;
+  }
+
+  .prose-keyp code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875em;
+    background: var(--muted);
+    padding: 0.15em 0.4em;
+  }
+
+  .prose-keyp pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875em;
+    background: var(--muted);
+    padding: 1.25em;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+
+  /* Mono text */
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+}
+
+/* ─── COMPONENTS ─── */
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1440px;
+    }
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  /* ─── Keyp. Specific Components ─── */
+
+  /* Focus ring override for sharp design */
+  *:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Season Badge */
+  .keyp-season-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--keyp-season);
+    border: 1px solid var(--keyp-season);
+    padding: 2px 6px;
+  }
+
+  /* Language Toggle */
+  .keyp-lang-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .keyp-lang-toggle button {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground);
+    transition: all 0.1s ease;
+  }
+
+  .keyp-lang-toggle button.active {
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  /* Landing header control alignment */
+  .keyp-season-badge-header {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  .keyp-header-control {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+  }
+
+  .keyp-lang-toggle.keyp-header-control button {
+    height: 100%;
+    padding: 0 10px;
+  }
+
+  /* Post Item — list style, no card */
+  .keyp-post-item {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+  }
+
+  .keyp-post-title {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    transition: color 0.1s ease;
+  }
+
+  .keyp-post-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.04em;
+  }
+
+  /* Comment depth indicators */
+  .keyp-comment-depth-1 { border-left: 2px solid rgba(var(--keyp-core-rgb), 0.65); }
+  .keyp-comment-depth-2 { border-left: 2px solid rgba(var(--keyp-core-rgb), 0.45); }
+  .keyp-comment-depth-3 { border-left: 2px solid rgba(var(--keyp-core-rgb), 0.30); }
+  .keyp-comment-depth-4 { border-left: 2px solid rgba(var(--keyp-core-rgb), 0.18); }
+
+  /* AI Panel */
+  .keyp-ai-panel {
+    border-left: 1px solid var(--border);
+    background: var(--card);
+  }
+
+  /* Section Label */
+  .keyp-section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  /* Sharp button */
+  .keyp-btn-primary {
+    background: var(--keyp-cobalt);
+    color: var(--primary-foreground);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 20px;
+    border: none;
+    transition: background 0.1s ease;
+    cursor: pointer;
+  }
+
+  .keyp-btn-primary:hover {
+    background: var(--keyp-cobalt-hover);
+  }
+
+  /* Sharp divider */
+  .keyp-divider {
+    height: 1px;
+    background: var(--border);
+    width: 100%;
+  }
+
+  /* Nav item */
+  .keyp-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    transition: all 0.1s ease;
+    border-left: 2px solid transparent;
+    text-decoration: none;
+  }
+
+  .keyp-nav-item:hover {
+    color: var(--foreground);
+    border-left-color: var(--border);
+    background: var(--accent);
+  }
+
+  .keyp-nav-item.active {
+    color: var(--primary);
+    border-left-color: var(--primary);
+    font-weight: 600;
+    background: rgba(var(--keyp-core-rgb), 0.10);
+  }
+
+  .dark .keyp-nav-item.active {
+    background: rgba(var(--keyp-core-rgb), 0.14);
+  }
+}
+
+/* ─── ANIMATIONS ─── */
+@layer utilities {
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.25s ease forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.25s ease forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.25s ease forwards;
+  }
+
+  /* Stagger utilities */
+  .stagger-1 { animation-delay: 0.04s; }
+  .stagger-2 { animation-delay: 0.08s; }
+  .stagger-3 { animation-delay: 0.12s; }
+  .stagger-4 { animation-delay: 0.16s; }
+  .stagger-5 { animation-delay: 0.20s; }
+  .stagger-6 { animation-delay: 0.24s; }
+  .stagger-7 { animation-delay: 0.28s; }
+  .stagger-8 { animation-delay: 0.32s; }
+
+  /* Language crossfade */
+  .lang-transition {
+    transition: opacity 0.15s ease;
+  }
+
+  .lang-hidden {
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+}
