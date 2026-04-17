@@ -4,7 +4,7 @@
  * Structure: Fixed Left Sidebar (256px) + Main Content + Right Context Panel
  * Sharp 0px radius, 1px borders, Noto Sans KR UI
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -32,7 +32,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { lang, setLang } = useLanguage();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const shouldHideTrendingNav = location.startsWith("/feed");
+  const [isDesktopFeedLayout, setIsDesktopFeedLayout] = useState(false);
+  const shouldHideTrendingNav = location.startsWith("/feed") && isDesktopFeedLayout;
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1280px)");
+    const syncLayoutMode = () => setIsDesktopFeedLayout(media.matches);
+
+    syncLayoutMode();
+    media.addEventListener("change", syncLayoutMode);
+    return () => media.removeEventListener("change", syncLayoutMode);
+  }, []);
 
   const isActive = (href: string) => location === href || location.startsWith(href + '/');
   const navigateToKeywordSearch = (keyword: string) => {
@@ -192,29 +202,33 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </div>
             </div>
 
-            {!shouldHideTrendingNav && (
-              <>
-                {/* Trending */}
-                <div>
-                  <p className="keyp-section-label px-3 mb-2">TRENDING</p>
-                  <div className="space-y-0.5">
-                    {trendingTopics.map((topic, i) => (
-                      <button
-                        key={topic.id}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent transition-colors cursor-pointer group text-left"
-                        onClick={() => navigateToKeywordSearch(lang === "ko" ? topic.label : topic.labelEn)}
-                      >
-                        <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
-                        <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors flex-1 truncate">
-                          {lang === 'ko' ? topic.label : topic.labelEn}
-                        </span>
-                        <TrendingUp size={11} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    ))}
-                  </div>
+            <div
+              className={`transition-all duration-300 ease-out ${
+                shouldHideTrendingNav
+                  ? "max-h-0 overflow-hidden opacity-0 blur-[2px] -translate-x-6 pointer-events-none"
+                  : "max-h-96 opacity-100 blur-0 translate-x-0"
+              }`}
+            >
+              {/* Trending */}
+              <div>
+                <p className="keyp-section-label px-3 mb-2">TRENDING</p>
+                <div className="space-y-0.5">
+                  {trendingTopics.map((topic, i) => (
+                    <button
+                      key={topic.id}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent transition-colors cursor-pointer group text-left"
+                      onClick={() => navigateToKeywordSearch(lang === "ko" ? topic.label : topic.labelEn)}
+                    >
+                      <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
+                      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors flex-1 truncate">
+                        {lang === 'ko' ? topic.label : topic.labelEn}
+                      </span>
+                      <TrendingUp size={11} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
                 </div>
-              </>
-            )}
+              </div>
+            </div>
           </nav>
 
           {/* Sidebar footer */}

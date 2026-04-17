@@ -203,11 +203,13 @@ export default function FeedPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'latest' | 'trending' | 'top'>('latest');
   const [activeSeason, setActiveSeason] = useState<string>(currentSeason.id);
+  const [showRightPanel, setShowRightPanel] = useState(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1280px)");
     const syncSortForViewport = () => {
+      setShowRightPanel(media.matches);
       if (media.matches && sortBy === "trending") {
         setSortBy("latest");
       }
@@ -228,6 +230,11 @@ export default function FeedPage() {
     syncCategoryFromUrl();
     window.addEventListener("popstate", syncCategoryFromUrl);
     return () => window.removeEventListener("popstate", syncCategoryFromUrl);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.add("feed-scrollbar-neutral");
+    return () => document.body.classList.remove("feed-scrollbar-neutral");
   }, []);
 
   const filteredPosts = posts.filter(p => {
@@ -376,8 +383,16 @@ export default function FeedPage() {
       </div>
 
       {/* ─── RIGHT CONTEXT PANEL ─── */}
-      <aside className="hidden xl:flex flex-col w-80 shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto">
-        <div className="p-5 space-y-6">
+      <aside
+        className={`flex flex-col shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-hidden transition-all duration-300 ease-out ${
+          showRightPanel ? "w-80 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-8 pointer-events-none"
+        }`}
+      >
+        <div
+          className={`p-5 space-y-6 transition-all duration-300 ease-out ${
+            showRightPanel ? "opacity-100 translate-x-0 blur-0" : "opacity-0 translate-x-6 blur-[2px]"
+          }`}
+        >
           {/* Season status */}
           <div>
             <p className="keyp-section-label mb-3">CURRENT SEASON</p>

@@ -268,9 +268,9 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-l border-t border-border">
           {TREND_ARTICLES_2026.map((item) => (
-            <article key={item.keyword} className="border-r border-b border-border p-6 md:p-7">
+            <article key={item.keyword} className="border-r border-b border-border p-6 md:p-7 transition-colors hover:bg-accent/40">
               <h3
-                className="text-2xl md:text-3xl font-black mb-3 text-foreground"
+                className="text-2xl md:text-3xl font-black mb-3 text-foreground transition-colors"
                 style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em', color: trendHeadingColor }}
               >
                 {item.keyword}

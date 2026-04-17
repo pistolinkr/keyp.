@@ -210,6 +210,16 @@
     background: var(--keyp-muted-text);
   }
 
+  body.feed-scrollbar-neutral::-webkit-scrollbar-thumb,
+  body.feed-scrollbar-neutral *::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  body.feed-scrollbar-neutral::-webkit-scrollbar-thumb:hover,
+  body.feed-scrollbar-neutral *::-webkit-scrollbar-thumb:hover {
+    background: transparent;
+  }
+
   /* Selection */
   ::selection {
     background: rgba(var(--keyp-core-rgb), 0.28);
@@ -344,6 +354,7 @@
     color: var(--keyp-season);
     border: 1px solid var(--keyp-season);
     padding: 2px 6px;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
   }
 
   /* Language Toggle */
@@ -395,6 +406,11 @@
   .keyp-post-item {
     border-bottom: 1px solid var(--border);
     padding: 20px 0;
+    transition: background-color 0.15s ease;
+  }
+
+  .keyp-post-item:hover {
+    background: color-mix(in oklab, var(--accent) 32%, transparent);
   }
 
   .keyp-post-title {
@@ -445,12 +461,17 @@
     font-size: 13px;
     padding: 8px 20px;
     border: none;
-    transition: background 0.1s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
     cursor: pointer;
   }
 
   .keyp-btn-primary:hover {
     background: var(--keyp-cobalt-hover);
+    transform: translateY(-1px);
+  }
+
+  .keyp-btn-primary:active {
+    transform: translateY(0);
   }
 
   /* Sharp divider */
