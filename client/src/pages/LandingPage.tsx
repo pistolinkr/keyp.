@@ -319,7 +319,7 @@ export default function LandingPage() {
       {/* ─── SEASON SYSTEM ─── */}
       <section className="border-y border-border bg-card">
         <div className="max-w-6xl mx-auto px-6 py-16 flex flex-col md:flex-row gap-12 items-center">
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col justify-center">
             <p className="keyp-section-label mb-3">SEASON SYSTEM</p>
             <h2
               className="text-3xl font-black mb-4 text-foreground"
@@ -332,30 +332,10 @@ export default function LandingPage() {
                 ? '시즌제는 단순한 필터가 아닙니다. 매년 1월 1일 새로운 시즌이 시작되며, 과거 시즌의 글은 읽기 전용 아카이브로 보존됩니다. 공정한 경쟁, 새로운 기회.'
                 : 'The season system is more than a filter. A new season begins every January 1st, and posts from past seasons are preserved as read-only archives. Fair competition, new opportunities.'}
             </p>
-            <div className="flex gap-3">
-              {[
-                { label: currentSeason.label, count: currentSeason.episodeCount, active: true },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className={`px-4 py-3 border ${s.active ? 'border-primary bg-primary/5' : 'border-border'}`}
-                >
-                  <div className={`font-mono text-xs font-medium mb-1 ${s.active ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {s.label}
-                  </div>
-                  <div className="font-bold text-lg" style={{ fontFamily: 'Noto Sans KR' }}>
-                    {s.count}
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {lang === 'ko' ? '게시글' : 'posts'}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
 
-          <div className="flex-1 flex justify-center">
-            <div className="w-full max-w-sm border border-border bg-background p-6">
+          <div className="flex-1 flex justify-end">
+            <div className="w-full max-w-sm border border-border bg-background p-6 md:p-8">
               <div className="flex items-center justify-between mb-4">
                 <span className="keyp-section-label">CURRENT SEASON</span>
                 <span className="keyp-season-badge">LIVE</span>
