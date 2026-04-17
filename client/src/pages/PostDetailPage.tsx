@@ -286,8 +286,10 @@ interface PostDetailPageProps {
 }
 
 export default function PostDetailPage({ id }: PostDetailPageProps) {
-  const { lang, setLang } = useLanguage();
+  const { lang: globalLang } = useLanguage();
+  const [lang, setLang] = useState<'ko' | 'en'>(globalLang);
   const [langTransitioning, setLangTransitioning] = useState(false);
+  const [hasLocalLanguageOverride, setHasLocalLanguageOverride] = useState(false);
   const [upvoted, setUpvoted] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [showAI, setShowAI] = useState(false);
@@ -317,12 +319,32 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
   // Language transition (no layout shift)
   const handleLangChange = (newLang: 'ko' | 'en') => {
     if (newLang === lang) return;
+    setHasLocalLanguageOverride(true);
     setLangTransitioning(true);
     setTimeout(() => {
       setLang(newLang);
       setLangTransitioning(false);
     }, 150);
   };
+
+  // Sync with nav language only until user explicitly overrides locally.
+  useEffect(() => {
+    if (hasLocalLanguageOverride) return;
+    if (globalLang === lang) return;
+    setLangTransitioning(true);
+    const timer = window.setTimeout(() => {
+      setLang(globalLang);
+      setLangTransitioning(false);
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [globalLang, hasLocalLanguageOverride, lang]);
+
+  // New report page starts from nav language again.
+  useEffect(() => {
+    setHasLocalLanguageOverride(false);
+    setLang(globalLang);
+  }, [id]);
 
   return (
     <div className="relative">

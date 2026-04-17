@@ -3,10 +3,10 @@
  * Design: Sharp Editorial Intelligence
  * Layout: Profile header + Posts grid + Stats sidebar
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { users, posts, seasons } from "@/lib/mockData";
+import { users, posts, seasons, currentUser } from "@/lib/mockData";
 import { ChevronLeft, BookOpen, MessageSquare, Bookmark, Award, Calendar, Globe } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ export default function ProfilePage({ username }: ProfilePageProps) {
   const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'bookmarks'>('posts');
 
   const user = users.find(u => u.username === username) || users[0];
+  const isOwnProfile = user.username === currentUser.username;
   const userPosts = posts.filter(p => p.author.id === user.id);
   const getSeasonPostCount = (seasonId: string) =>
     posts.filter(p => p.seasonId === seasonId && p.author.id === user.id).length;
@@ -26,19 +27,24 @@ export default function ProfilePage({ username }: ProfilePageProps) {
   const xpToNextLevel = 1000 - (user.xp % 1000);
   const xpProgress = ((user.xp % 1000) / 1000) * 100;
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [username]);
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="max-w-5xl mx-auto px-6 py-8 lg:flex lg:flex-col lg:h-[calc(100vh-56px)] lg:overflow-hidden">
       {/* Back */}
-      <Link href="/feed">
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 cursor-pointer w-fit">
+      <Link
+        href="/feed"
+        className="inline-flex w-fit self-start items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+      >
           <ChevronLeft size={16} />
           {lang === 'ko' ? '피드로 돌아가기' : 'Back to Feed'}
-        </div>
       </Link>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
         {/* ─── LEFT: Profile ─── */}
-        <div className="lg:w-72 shrink-0">
+        <div className="lg:w-72 shrink-0 lg:overflow-hidden">
           {/* Profile card */}
           <div className="border border-border p-6 mb-4">
             {/* Avatar */}
@@ -116,13 +122,15 @@ export default function ProfilePage({ username }: ProfilePageProps) {
             </div>
           </div>
 
-          {/* Follow button */}
-          <button
-            className="w-full keyp-btn-primary py-2.5 text-sm mb-4"
-            onClick={() => toast(lang === 'ko' ? '팔로우했습니다' : 'Followed')}
-          >
-            {lang === 'ko' ? '팔로우' : 'Follow'}
-          </button>
+          {/* Follow button (hidden on own profile) */}
+          {!isOwnProfile && (
+            <button
+              className="w-full keyp-btn-primary py-2.5 text-sm mb-4"
+              onClick={() => toast(lang === 'ko' ? '팔로우했습니다' : 'Followed')}
+            >
+              {lang === 'ko' ? '팔로우' : 'Follow'}
+            </button>
+          )}
 
           {/* Season history */}
           <div className="border border-border p-4">
@@ -146,9 +154,9 @@ export default function ProfilePage({ username }: ProfilePageProps) {
         </div>
 
         {/* ─── RIGHT: Content ─── */}
-        <div className="flex-1 min-w-0">
-          {/* Language toggle */}
-          <div className="flex items-center justify-between mb-6">
+        <div className="flex-1 min-w-0 lg:overflow-x-hidden lg:overflow-y-auto lg:pr-1">
+          {/* Sticky tabs/language bar */}
+          <div className="sticky top-0 z-20 bg-background flex items-center justify-between mb-6">
             <div className="flex border-b border-border">
               {[
                 { id: 'posts', icon: BookOpen, label: lang === 'ko' ? '게시글' : 'Posts' },

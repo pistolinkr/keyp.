@@ -106,7 +106,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {/* Notifications */}
         <button
           className="p-1.5 hover:bg-accent transition-colors relative"
-          onClick={() => toast("알림이 없습니다", { description: "새로운 알림이 없습니다." })}
+          onClick={() =>
+            toast.custom(() => (
+              <div className="rounded-md border border-border bg-background px-4 py-3 shadow-sm">
+                <p className="text-sm font-bold text-foreground">
+                  {lang === "ko" ? "알림이 없습니다" : "No notifications"}
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  {lang === "ko"
+                    ? "새로운 알림이 없습니다."
+                    : "There are no new notifications."}
+                </p>
+              </div>
+            ))
+          }
         >
           <Bell size={17} />
           <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary" />
@@ -208,7 +221,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               >
                 <img
                   src={currentUser.avatar}
-                  alt={currentUser.displayName}
+                  alt={lang === "ko" ? currentUser.displayName : currentUser.displayNameEn}
                   className="w-full h-full object-cover"
                 />
               </button>
@@ -217,8 +230,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
             {/* User XP */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-xs font-medium truncate">{currentUser.displayName}</span>
-                <span className="font-mono text-xs text-primary">Lv.{currentUser.level}</span>
+                <span className="text-xs font-medium truncate">
+                  {lang === "ko" ? currentUser.displayName : currentUser.displayNameEn}
+                </span>
+                <span className="font-mono text-xs text-primary">
+                  {lang === "ko" ? `Lv.${currentUser.level}` : `Lv.${currentUser.level}`}
+                </span>
               </div>
               <div className="w-full h-1 bg-muted overflow-hidden">
                 <div
@@ -227,7 +244,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 />
               </div>
               <div className="flex justify-between mt-1">
-                <span className="font-mono text-xs text-muted-foreground">{currentUser.xp} XP</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {lang === "ko" ? `${currentUser.xp} XP` : `${currentUser.xp} XP`}
+                </span>
                 <span className="font-mono text-xs text-muted-foreground">{currentSeason.label}</span>
               </div>
             </div>
