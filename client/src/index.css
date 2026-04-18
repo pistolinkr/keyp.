@@ -383,7 +383,7 @@
 
   /* Landing header control alignment */
   .keyp-season-badge-header {
-    height: 32px;
+    height: 22px;
     padding: 0 10px;
     font-size: 11px;
     letter-spacing: 0.06em;
@@ -589,5 +589,108 @@
     opacity: 0;
     pointer-events: none;
     position: absolute;
+  }
+}
+
+/* ─── DEVICE OPTIMIZATION BREAKPOINTS ─── */
+
+/* Mobile baseline (360px+) */
+@media (min-width: 360px) {
+  body {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .keyp-nav-item {
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+
+  .keyp-post-item {
+    padding: 16px 0;
+  }
+
+  .keyp-post-title {
+    font-size: 16px;
+  }
+
+  .keyp-btn-primary {
+    font-size: 12px;
+    padding: 7px 16px;
+  }
+}
+
+/* Large mobile (390px+) */
+@media (min-width: 390px) {
+  body {
+    font-size: 14.5px;
+    line-height: 1.58;
+  }
+
+  .keyp-lang-toggle button {
+    padding: 5px 11px;
+  }
+
+  .keyp-season-badge {
+    padding: 3px 7px;
+  }
+
+  .keyp-post-item {
+    padding: 18px 0;
+  }
+}
+
+/* Tablet (768px+) */
+@media (min-width: 768px) {
+  body {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .keyp-nav-item {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .keyp-post-title {
+    font-size: 17px;
+  }
+
+  .keyp-btn-primary {
+    font-size: 13px;
+    padding: 8px 20px;
+  }
+}
+
+/* Small desktop (1024px+) */
+@media (min-width: 1024px) {
+  body {
+    font-size: 15.5px;
+    line-height: 1.62;
+  }
+
+  .keyp-post-item {
+    padding: 20px 0;
+  }
+
+  .keyp-section-label {
+    font-size: 10px;
+    letter-spacing: 0.13em;
+  }
+}
+
+/* Large desktop (1280px+) */
+@media (min-width: 1280px) {
+  body {
+    font-size: 16px;
+    line-height: 1.65;
+  }
+
+  .keyp-post-title {
+    font-size: 18px;
+  }
+
+  .keyp-nav-item {
+    padding: 9px 13px;
   }
 }
