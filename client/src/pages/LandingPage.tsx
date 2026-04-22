@@ -762,7 +762,7 @@ export default function LandingPage() {
         <div className="max-w-7xl xl:max-w-[96rem] mx-auto px-4 py-6 md:px-6 md:py-10 flex justify-center items-end min-h-[320px] md:min-h-[420px]">
           <div
             ref={ctaImageWrapRef}
-            className="w-fit max-w-full overflow-visible border-border bg-card p-4 md:p-6"
+            className="relative z-0 w-fit max-w-full overflow-hidden border-border bg-card p-4 md:p-6"
           >
             <div
               className="inline-block max-w-full select-none"
@@ -791,7 +791,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 2026 TREND SPECIAL ─── */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
+      <section className="relative z-10 max-w-6xl mx-auto px-6 py-20">
         <div className="mb-10">
           <p className="keyp-section-label mb-3" style={{ color: trendHeadingColor }}>{c.trendSectionLabel}</p>
           <h2
@@ -830,7 +830,7 @@ export default function LandingPage() {
                 key={item.keyword}
                 type="button"
                 onClick={() => setSelectedTrendKeyword(item.keyword)}
-                className={`px-3 py-1.5 border text-lg md:text-2xl font-black tracking-tight transition-all duration-200 ${
+                className={`relative z-20 px-3 py-1.5 border text-lg md:text-2xl font-black tracking-tight transition-all duration-200 ${
                   selectedTrendKeyword === item.keyword
                     ? "scale-[1.02] shadow-sm"
                     : "hover:-translate-y-0.5"
