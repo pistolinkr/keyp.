@@ -1,0 +1,27 @@
+-- Keyp. seed (optional)
+--
+-- Auth users are created via Supabase Auth; `public.profiles` rows are created by trigger `on_auth_user_created`.
+-- Insert articles only after you have real `author_profile_id` values from `auth.users` / `public.profiles`.
+--
+-- Example (replace UUIDs and text with your data):
+--
+-- insert into public.articles (
+--   id, slug, category, author_profile_id,
+--   author_username, author_display_name, author_display_name_en, author_avatar_url,
+--   status, original_lang, difficulty, published_at
+-- ) values (
+--   'my-first-post',
+--   'my-first-post-slug',
+--   'tech',
+--   '00000000-0000-0000-0000-000000000000'::uuid,
+--   'username',
+--   '표시 이름',
+--   'Display Name',
+--   'https://example.com/avatar.png',
+--   'published',
+--   'ko',
+--   'intermediate',
+--   now()
+-- );
+
+select 1;

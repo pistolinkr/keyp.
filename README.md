@@ -21,14 +21,16 @@
 
 #### 4. MVP 범위 — 포함 (In scope)
 
-| 영역 | 내용 |
-|------|------|
-| 정보 구조 | 랜딩(`/`), 피드(`/feed`), 글(`/post/:id`), 글쓰기(`/write`), 프로필(`/profile/:username`), 검색(`/search`), 시즌(`/season/:id`, `/seasons`), 오류 안내(`/guide4-stuck-man`), 404 |
-| 글로벌 UX | KO/EN 전역 언어, 라이트/다크 테마, 메인 레이아웃(사이드 네비·헤더) |
-| 피드 | 카테고리·시즌 필터, 정렬(latest / trending / top), 목 데이터 기반 목록 |
-| 콘텐츠 | 글 상세·댓글 스레드·AI 패널 UI(에디터 포함) |
-| 랜딩 | 히어로, 통계, 2026 트렌드 키워드·정의 인터랙션, 시즌·CTA 등 마케팅 블록 |
-| 배포 형태 | Vite 빌드 + Express로 정적 파일 제공 및 클라이언트 라우팅 |
+
+| 영역     | 내용                                                                                                                                                            |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 정보 구조  | 랜딩(`/`), 피드(`/feed`), 글(`/post/:id`), 글쓰기(`/write`), 프로필(`/profile/:username`), 검색(`/search`), 시즌(`/season/:id`, `/seasons`), 오류 안내(`/guide4-stuck-man`), 404 |
+| 글로벌 UX | KO/EN 전역 언어, 라이트/다크 테마, 메인 레이아웃(사이드 네비·헤더)                                                                                                                    |
+| 피드     | 카테고리·시즌 필터, 정렬(latest / trending / top), 목 데이터 기반 목록                                                                                                          |
+| 콘텐츠    | 글 상세·댓글 스레드·AI 패널 UI(에디터 포함)                                                                                                                                  |
+| 랜딩     | 히어로, 통계, 2026 트렌드 키워드·정의 인터랙션, 시즌·CTA 등 마케팅 블록                                                                                                                |
+| 배포 형태  | Vite 빌드 + Express로 정적 파일 제공 및 클라이언트 라우팅                                                                                                                       |
+
 
 #### 5. 핵심 사용자 시나리오 (MVP 성공 기준)
 
@@ -61,6 +63,7 @@ React, TypeScript, Vite, Wouter, Tailwind v4, Radix, Sonner 등.
 
 ```bash
 pnpm install
+cp .env.example .env
 pnpm dev
 ```
 
@@ -68,6 +71,15 @@ pnpm dev
 pnpm check   # 타입 검사
 pnpm build   # 빌드
 ```
+
+`.env`에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`를 넣으면 피드·글 상세·검색·시즌은 Supabase `articles` 등에서 읽습니다. 값이 없거나 예시 URL이면 기존 목 데이터로 동작합니다.
+
+**프로덕션 DB 반영 (요약)**
+
+1. Supabase CLI로 프로젝트 연결: `supabase link --project-ref <ref>`
+2. 마이그레이션 적용: `supabase db push`
+3. 초기 글·시즌 데이터: 대시보드 SQL 편집기에서 `supabase/seed.sql` 실행(또는 로컬에서 `supabase db reset`으로 마이그레이션+시드)
+4. Vercel(또는 호스팅)에 동일한 `VITE_*` 환경 변수 설정 후 배포
 
 ### 프로젝트 구조
 
@@ -103,14 +115,16 @@ A frontend product that lets you read long-form posts, browse the feed, and walk
 
 #### 4. MVP scope — in scope
 
-| Area | Scope |
-|------|--------|
-| IA | Landing (`/`), feed (`/feed`), post (`/post/:id`), editor (`/write`), profile (`/profile/:username`), search (`/search`), seasons (`/season/:id`, `/seasons`), troubleshooting (`/guide4-stuck-man`), 404 |
-| Global UX | KO/EN app language, light/dark theme, main layout (sidebar nav + header) |
-| Feed | Category & season filters, sort (latest / trending / top), mock-data-driven list |
-| Content | Post detail, threaded comments, AI panel UI (including editor) |
-| Landing | Hero, stats, 2026 trend keywords & definitions, season & CTA blocks |
-| Deploy | Vite build + Express static hosting with client-side routing |
+
+| Area      | Scope                                                                                                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IA        | Landing (`/`), feed (`/feed`), post (`/post/:id`), editor (`/write`), profile (`/profile/:username`), search (`/search`), seasons (`/season/:id`, `/seasons`), troubleshooting (`/guide4-stuck-man`), 404 |
+| Global UX | KO/EN app language, light/dark theme, main layout (sidebar nav + header)                                                                                                                                  |
+| Feed      | Category & season filters, sort (latest / trending / top), mock-data-driven list                                                                                                                          |
+| Content   | Post detail, threaded comments, AI panel UI (including editor)                                                                                                                                            |
+| Landing   | Hero, stats, 2026 trend keywords & definitions, season & CTA blocks                                                                                                                                       |
+| Deploy    | Vite build + Express static hosting with client-side routing                                                                                                                                              |
+
 
 #### 5. Core user scenarios (MVP success criteria)
 
@@ -143,6 +157,7 @@ React, TypeScript, Vite, Wouter, Tailwind v4, Radix, Sonner, etc.
 
 ```bash
 pnpm install
+cp .env.example .env
 pnpm dev
 ```
 
@@ -150,6 +165,15 @@ pnpm dev
 pnpm check   # Typecheck
 pnpm build   # Production build
 ```
+
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env` so feed, post detail, search, and seasons read from Supabase. Without valid values, the app falls back to bundled mock data.
+
+**Production database (short)**
+
+1. `supabase link --project-ref <ref>`
+2. `supabase db push`
+3. Run `supabase/seed.sql` in the Supabase SQL editor (or `supabase db reset` locally for migrations + seed)
+4. Add the same `VITE_*` vars on Vercel, then deploy
 
 ### Project layout
 

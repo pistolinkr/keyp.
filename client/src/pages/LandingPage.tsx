@@ -3,7 +3,7 @@
  * Design: Sharp Editorial Intelligence
  * Hero section with geometric banner, platform intro, CTA
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,6 +12,7 @@ import {
   Moon,
   ArrowRight,
   ArrowUpRight,
+  ArrowUp,
   BookOpen,
   MessageSquare,
   Globe,
@@ -19,115 +20,205 @@ import {
   Users,
   TrendingUp,
   Github,
+  Mail,
 } from "lucide-react";
-import { currentSeason } from "@/lib/mockData";
+import { NavbarScrollBlur } from "@/components/layout/NavbarScrollBlur";
 import { toast } from "sonner";
 
-const HERO_BANNER = "https://d2xsxph8kpxj0f.cloudfront.net/310519663440167945/Jji6NfGi9ZRd2BD8ESyw5F/keyp-hero-banner-CgBiVkSAWxcq7r6YNShYJd.webp";
 const CORE_COLOR_2026 = "rgb(245, 220, 74)";
 const CORE_TEXT_COLOR_2026 = "rgb(196, 164, 30)";
 const LIGHT_THEME_TREND_COLOR_2026 = "#e9a91f";
-const TREND_ARTICLES_2026 = [
+
+interface LandingStat {
+  value: string;
+  label: string;
+}
+
+const parseStatTargetValue = (value: string) => {
+  const parsed = Number(value.replaceAll(",", ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+function LandingStatCard({
+  stat,
+  index,
+  isVisible,
+}: {
+  stat: LandingStat;
+  index: number;
+  isVisible: boolean;
+}) {
+  const target = parseStatTargetValue(stat.value);
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!isVisible) {
+      setDisplayValue(0);
+      return;
+    }
+
+    let rafId = 0;
+    let startTime = 0;
+    const durationMs = 1150;
+    const delayMs = index * 120;
+
+    const timeoutId = window.setTimeout(() => {
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / durationMs, 1);
+        const eased = 1 - (1 - progress) ** 3;
+        setDisplayValue(Math.round(target * eased));
+        if (progress < 1) {
+          rafId = window.requestAnimationFrame(animate);
+        }
+      };
+
+      rafId = window.requestAnimationFrame(animate);
+    }, delayMs);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  }, [index, isVisible, target]);
+
+  return (
+    <div className={`relative overflow-hidden px-6 py-4 ${index < 3 ? "border-r border-border" : ""}`}>
+      <div className="font-black text-3xl text-foreground mb-1" style={{ fontFamily: "Noto Sans KR", letterSpacing: "-0.04em" }}>
+        {displayValue.toLocaleString("en-US")}
+      </div>
+      <div className="keyp-section-label">{stat.label}</div>
+    </div>
+  );
+}
+
+const TREND_KEYWORD_BRIEFS = [
   {
     keyword: "휴먼인더루프",
     keywordEn: "Human-in-the-Loop",
-    summaryKo: "AI가 초안을 만들고 인간이 맥락을 최종 판단하는 협업 모델이 표준이 됩니다. 의사결정의 속도는 높아지되, 책임과 검증은 사람 중심으로 재정렬됩니다.",
-    summaryEn: "AI drafts while humans make final contextual decisions. Organizations move faster, but accountability and validation remain human-centered.",
+    summaryKo:
+      "AI가 초안을 만들고 인간이 맥락을 최종 판단하는 협업 모델이 표준이 됩니다. 의사결정의 속도는 높아지되, 책임과 검증은 사람 중심으로 재정렬됩니다.",
+    summaryEn:
+      "AI drafts while humans make final contextual decisions. Organizations move faster, but accountability and validation remain human-centered.",
   },
   {
     keyword: "필코노미",
     keywordEn: "Philconomy",
-    summaryKo: "결핍을 단순한 문제로 보지 않고 정체성과 소비를 형성하는 문화 코드로 해석하는 흐름입니다. 브랜드는 '무엇을 채워주나'보다 '왜 부족함을 느끼나'를 다루게 됩니다.",
-    summaryEn: "Scarcity becomes a cultural code shaping identity and spending. Brands shift from filling needs to understanding why people feel lacking.",
+    summaryKo:
+      "결핍을 단순한 문제로 보지 않고 정체성과 소비를 형성하는 문화 코드로 해석하는 흐름입니다. 브랜드는 '무엇을 채워주나'보다 '왜 부족함을 느끼나'를 다루게 됩니다.",
+    summaryEn:
+      "Scarcity becomes a cultural code shaping identity and spending. Brands shift from filling needs to understanding why people feel lacking.",
   },
   {
     keyword: "제로클릭",
     keywordEn: "Zero-Click",
-    summaryKo: "사용자가 클릭하기 전에 정보가 소비되는 인터페이스가 확산됩니다. 검색과 콘텐츠는 체류보다 즉시 이해를 제공하는 구조로 재편됩니다.",
-    summaryEn: "Information is consumed before users click. Search and content ecosystems optimize for instant comprehension over page dwell time.",
+    summaryKo:
+      "사용자가 클릭하기 전에 정보가 소비되는 인터페이스가 확산됩니다. 검색과 콘텐츠는 체류보다 즉시 이해를 제공하는 구조로 재편됩니다.",
+    summaryEn:
+      "Information is consumed before users click. Search and content ecosystems optimize for instant comprehension over page dwell time.",
   },
   {
     keyword: "레디코어",
     keywordEn: "Ready-Core",
-    summaryKo: "준비된 상태 자체가 경쟁력이 되는 시대입니다. 개인과 조직은 실행 속도보다 사전 세팅, 템플릿, 운영 자동화 역량으로 차이를 만듭니다.",
-    summaryEn: "Readiness itself becomes the edge. Teams compete through preconfigured systems, templates, and operational automation.",
+    summaryKo:
+      "준비된 상태 자체가 경쟁력이 되는 시대입니다. 개인과 조직은 실행 속도보다 사전 세팅, 템플릿, 운영 자동화 역량으로 차이를 만듭니다.",
+    summaryEn:
+      "Readiness itself becomes the edge. Teams compete through preconfigured systems, templates, and operational automation.",
   },
   {
     keyword: "AX조직",
     keywordEn: "AX Organization",
-    summaryKo: "AI 전환은 도구 도입이 아니라 조직 구조의 재설계 문제로 이동합니다. 직무 경계가 유연해지고, 팀은 AI를 전제로 역할을 다시 정의합니다.",
-    summaryEn: "AI transformation shifts from tools to org redesign. Role boundaries blur and teams redefine responsibilities with AI as a baseline.",
+    summaryKo:
+      "AI 전환은 도구 도입이 아니라 조직 구조의 재설계 문제로 이동합니다. 직무 경계가 유연해지고, 팀은 AI를 전제로 역할을 다시 정의합니다.",
+    summaryEn:
+      "AI transformation shifts from tools to org redesign. Role boundaries blur and teams redefine responsibilities with AI as a baseline.",
   },
   {
     keyword: "픽셀라이프",
     keywordEn: "Pixel Life",
-    summaryKo: "오프라인 경험조차 디지털 레이어를 통해 기록, 공유, 평가되는 생활 방식이 일상화됩니다. 삶의 단위가 '장면'과 '데이터'로 동시 관리됩니다.",
-    summaryEn: "Even offline experiences are logged, shared, and evaluated through digital layers. Life is managed as both moments and data.",
+    summaryKo:
+      "오프라인 경험조차 디지털 레이어를 통해 기록, 공유, 평가되는 생활 방식이 일상화됩니다. 삶의 단위가 '장면'과 '데이터'로 동시 관리됩니다.",
+    summaryEn:
+      "Even offline experiences are logged, shared, and evaluated through digital layers. Life is managed as both moments and data.",
   },
   {
     keyword: "프라이스 디코딩",
     keywordEn: "Price Decoding",
-    summaryKo: "소비자는 가격표가 아닌 가격의 구조를 읽기 시작합니다. 구독, 번들, 동적 요금제의 논리를 해석하는 능력이 구매 전략이 됩니다.",
-    summaryEn: "Consumers decode pricing logic, not just tags. Interpreting subscriptions, bundles, and dynamic rates becomes a core buying skill.",
+    summaryKo:
+      "소비자는 가격표가 아닌 가격의 구조를 읽기 시작합니다. 구독, 번들, 동적 요금제의 논리를 해석하는 능력이 구매 전략이 됩니다.",
+    summaryEn:
+      "Consumers decode pricing logic, not just tags. Interpreting subscriptions, bundles, and dynamic rates becomes a core buying skill.",
   },
   {
     keyword: "건강지능 HQ",
     keywordEn: "Health Intelligence HQ",
-    summaryKo: "건강 관리의 중심이 병원 단일 접점에서 개인 데이터 허브로 이동합니다. 수면, 식습관, 스트레스 데이터가 생활 의사결정의 기본 입력값이 됩니다.",
-    summaryEn: "Health management moves from hospital touchpoints to personal data hubs. Sleep, diet, and stress metrics become daily decision inputs.",
+    summaryKo:
+      "건강 관리의 중심이 병원 단일 접점에서 개인 데이터 허브로 이동합니다. 수면, 식습관, 스트레스 데이터가 생활 의사결정의 기본 입력값이 됩니다.",
+    summaryEn:
+      "Health management moves from hospital touchpoints to personal data hubs. Sleep, diet, and stress metrics become daily decision inputs.",
   },
   {
     keyword: "1.5가구",
     keywordEn: "1.5 Household",
-    summaryKo: "1인 가구와 가족 가구의 중간 형태가 새로운 소비 단위로 부상합니다. 함께 살지 않아도 함께 소비하는 관계 기반 생활권이 확대됩니다.",
-    summaryEn: "A new unit between solo and family households emerges. People consume together without necessarily living together.",
+    summaryKo:
+      "1인 가구와 가족 가구의 중간 형태가 새로운 소비 단위로 부상합니다. 함께 살지 않아도 함께 소비하는 관계 기반 생활권이 확대됩니다.",
+    summaryEn:
+      "A new unit between solo and family households emerges. People consume together without necessarily living together.",
   },
   {
     keyword: "근본이즘",
     keywordEn: "Back-to-Basics",
-    summaryKo: "과잉 정보 시대에 기본기와 본질로 회귀하려는 흐름이 강해집니다. 제품과 콘텐츠는 화려함보다 신뢰 가능한 핵심 가치로 평가받습니다.",
-    summaryEn: "In an age of overload, people return to fundamentals. Products and content are judged more by trustworthy core value than novelty.",
+    summaryKo:
+      "과잉 정보 시대에 기본기와 본질로 회귀하려는 흐름이 강해집니다. 제품과 콘텐츠는 화려함보다 신뢰 가능한 핵심 가치로 평가받습니다.",
+    summaryEn:
+      "In an age of overload, people return to fundamentals. Products and content are judged more by trustworthy core value than novelty.",
   },
 ];
 
 export default function LandingPage() {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang } = useLanguage();
-  const [selectedTrendKeyword, setSelectedTrendKeyword] = useState<string>(TREND_ARTICLES_2026[0]?.keyword ?? "");
-  const [isHeroBadgeVisible, setIsHeroBadgeVisible] = useState(true);
-  const [navBadgeTransitionMs, setNavBadgeTransitionMs] = useState(220);
+  const [selectedTrendKeyword, setSelectedTrendKeyword] = useState<string>(TREND_KEYWORD_BRIEFS[0]?.keyword ?? "");
   const [isHeroCtaHovered, setIsHeroCtaHovered] = useState(false);
   const [heroCtaButtonWidth, setHeroCtaButtonWidth] = useState(0);
   const [heroCtaContainerWidth, setHeroCtaContainerWidth] = useState(0);
-  const heroBadgeRef = useRef<HTMLSpanElement | null>(null);
+  const ctaBandImageRef = useRef<HTMLImageElement | null>(null);
+  const ctaHeadlineRef = useRef<HTMLDivElement | null>(null);
+  const ctaImageWrapRef = useRef<HTMLDivElement | null>(null);
   const heroCtaContainerRef = useRef<HTMLDivElement | null>(null);
   const heroCtaButtonRef = useRef<HTMLButtonElement | null>(null);
-  const lastScrollYRef = useRef(0);
-  const lastScrollTimeRef = useRef(0);
-  const currentDurationRef = useRef(220);
-  const rafRef = useRef<number | null>(null);
+  const ctaTiltRef = useRef({
+    currentX: 0,
+    currentY: 0,
+    currentScale: 1,
+    targetX: 0,
+    targetY: 0,
+    targetScale: 1,
+  });
 
   const content = {
     ko: {
-      tagline: '지식은 공유될 때 완성된다',
-      subtitle: 'Keyp.는 한국인과 세계를 연결하는 교육형 지식 커뮤니티입니다.\nMedium의 깊이 있는 읽기 경험과 Reddit의 구조적 토론을 결합했습니다.',
+      tagline: '한국의 맥락으로 읽고, 세계와 연결된다',
+      subtitle: 'Keyp.는 한국 사회와 산업, 문화의 신호를 깊이 읽는 지식 커뮤니티입니다.',
       cta: '입장하기',
-      trendSectionLabel: "2026 트렌드 스페셜",
-      trendTitle: "2026 트렌드 리포트",
-      trendSubtitle: "트렌드 코리아 2026 도서에서 볼 수 있는 2026년의 트렌드 키워드입니다.",
+      trendSectionLabel: "KOREA CONTEXT BRIEF",
+      trendTitle: "2026 한국 트렌드 키워드",
+      trendSubtitle: "한국의 시장, 정책, 생활 변화에서 출발한 2026 핵심 키워드를 빠르게 파악합니다.",
       features: [
-        { icon: BookOpen, title: '깊이 있는 글쓰기', desc: '시즌제로 운영되는 지식 아카이브. 매년 새롭게 시작하는 지식의 여정.' },
+        { icon: BookOpen, title: '깊이 있는 글쓰기', desc: '한국 맥락을 중심에 둔 장문 에세이와 리포트. 아카이브로 축적됩니다.' },
         { icon: MessageSquare, title: '구조적 토론', desc: 'Reddit 스타일의 재귀적 댓글 스레드. 복잡한 논의도 명확하게 추적.' },
         { icon: Globe, title: '이중 언어 지원', desc: '모든 글을 한국어와 영어로. 언어의 장벽 없이 지식을 나눕니다.' },
         { icon: Zap, title: 'AI 글쓰기 보조', desc: '비침습적 AI 어시스턴트. 당신의 글쓰기를 방해하지 않고 도와드립니다.' },
         { icon: Users, title: '지식 커뮤니티', desc: '검증된 전문가와 열정적인 학습자가 함께하는 교육 생태계.' },
-        { icon: TrendingUp, title: '시즌 랭킹', desc: '연간 리셋되는 공정한 경쟁. 매 시즌 새로운 기회가 열립니다.' },
+        { icon: TrendingUp, title: '트렌드 키워드', desc: '시장과 정책, 생활의 신호를 키워드로 빠르게 파악합니다.' },
       ],
       stats: [
-        { value: '12,847', label: '활성 사용자' },
-        { value: '648', label: '시즌 게시글' },
-        { value: '3', label: '운영 시즌' },
-        { value: String(currentSeason.episodeCount), label: '이번 주 에피소드' },
+        { value: '10', label: '추적 키워드' },
+        { value: '0', label: '공개 게시글' },
+        { value: '0', label: '토론 스레드' },
+        { value: '0', label: '저장된 북마크' },
       ],
       ctaBandSub:
         "피드와 글쓰기를 바로 체험하고, 무료로 커뮤니티에 참여해 보세요.",
@@ -141,25 +232,25 @@ export default function LandingPage() {
       footerLegalPrivacy: "개인정보",
     },
     en: {
-      tagline: 'Knowledge is complete when shared',
-      subtitle: "Keyp. is an educational knowledge community connecting Koreans and the world.\nCombining Medium's deep reading experience with Reddit's structured discussion.",
+      tagline: 'Read Korea in context, connect to the world',
+      subtitle: "Keyp. is a knowledge community grounded in Korea's social, industry, and cultural signals.\nDebate local issues in Korean, then expand them globally in English.",
       cta: 'Get Started',
-      trendSectionLabel: "2026 TREND SPECIAL",
+      trendSectionLabel: "KOREA CONTEXT BRIEF",
       trendTitle: "2026 Trend Report",
-      trendSubtitle: "Trend keywords for 2026 as featured in the Trend Korea 2026 book.",
+      trendSubtitle: "Track 2026 signals rooted in Korean market shifts, policy changes, and daily life.",
       features: [
-        { icon: BookOpen, title: 'Deep Writing', desc: 'A season-based knowledge archive. A new journey of knowledge beginning each year.' },
+        { icon: BookOpen, title: 'Deep Writing', desc: 'Long-form essays and reports centered on Korean context, archived for the long term.' },
         { icon: MessageSquare, title: 'Structured Discussion', desc: 'Reddit-style recursive comment threads. Track complex discussions clearly.' },
         { icon: Globe, title: 'Bilingual Support', desc: 'Every post in Korean and English. Share knowledge without language barriers.' },
         { icon: Zap, title: 'AI Writing Assistant', desc: 'Non-invasive AI assistant. Helps your writing without getting in the way.' },
         { icon: Users, title: 'Knowledge Community', desc: 'An educational ecosystem where verified experts and passionate learners meet.' },
-        { icon: TrendingUp, title: 'Season Rankings', desc: 'Fair competition with annual resets. New opportunities open each season.' },
+        { icon: TrendingUp, title: 'Trend Keywords', desc: 'Surface market, policy, and lifestyle signals through curated keywords.' },
       ],
       stats: [
-        { value: '12,847', label: 'Active Users' },
-        { value: '648', label: 'Season Posts' },
-        { value: '3', label: 'Seasons Run' },
-        { value: String(currentSeason.episodeCount), label: 'This Week\'s Episodes' },
+        { value: '10', label: 'Tracked Keywords' },
+        { value: '0', label: 'Public Posts' },
+        { value: '0', label: 'Discussion Threads' },
+        { value: '0', label: 'Saved Bookmarks' },
       ],
       ctaBandSub:
         "Try the feed and editor, and start on the free tier to explore Keyp. in your workflow.",
@@ -186,65 +277,48 @@ export default function LandingPage() {
   const trendHeadingColor = theme === "light" ? LIGHT_THEME_TREND_COLOR_2026 : CORE_COLOR_2026;
   const trendKeywordColor = theme === "light" ? LIGHT_THEME_TREND_COLOR_2026 : CORE_TEXT_COLOR_2026;
   const selectedTrendArticle =
-    TREND_ARTICLES_2026.find((item) => item.keyword === selectedTrendKeyword) ?? TREND_ARTICLES_2026[0];
-  const showHeaderSeasonBadge = !isHeroBadgeVisible;
+    TREND_KEYWORD_BRIEFS.find((item) => item.keyword === selectedTrendKeyword) ?? TREND_KEYWORD_BRIEFS[0];
   const heroCtaPullOffset = Math.max(0, (heroCtaContainerWidth - heroCtaButtonWidth) / 2);
+  const statsSectionRef = useRef<HTMLElement | null>(null);
+  const [isStatsVisible, setIsStatsVisible] = useState(false);
+  const footerRevealRef = useRef<HTMLElement | null>(null);
+  const [footerRevealHeight, setFooterRevealHeight] = useState(520);
+  const [footerLogoLiftPx, setFooterLogoLiftPx] = useState(0);
 
-  useEffect(() => {
-    const target = heroBadgeRef.current;
-    if (!target) return;
+  const footerRevealBg = theme === "light" ? "#ffffff" : "#0a0a0a";
+  const mainCurtainBg = theme === "light" ? "#f1f0ec" : "#121212";
+  const footerTextPrimary = theme === "light" ? "text-zinc-700" : "text-zinc-300";
+  const footerTextMuted = theme === "light" ? "text-zinc-500" : "text-zinc-500";
+  const footerBorder = theme === "light" ? "border-black/10" : "border-white/10";
+  const footerHoverText = theme === "light" ? "hover:text-black" : "hover:text-white";
+  const footerIconButtonClass =
+    theme === "light"
+      ? "border-black/15 text-zinc-700 hover:text-black hover:border-black/35"
+      : "border-white/15 text-zinc-200 hover:text-primary hover:border-primary/60";
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsHeroBadgeVisible(entry.isIntersecting && entry.intersectionRatio > 0.15);
-      },
-      {
-        threshold: [0, 0.15, 0.35, 0.65, 1],
-      },
-    );
+  /** Stable hit box (no CSS transform) — avoids feedback jitter when tilting the inner img. */
+  const applyCtaBandTilt = (event: MouseEvent<HTMLDivElement>) => {
+    const hit = event.currentTarget;
+    const rect = hit.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
 
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, []);
+    const relativeX = (event.clientX - rect.left) / rect.width;
+    const relativeY = (event.clientY - rect.top) / rect.height;
+    const rotateY = (relativeX - 0.5) * 8;
+    const rotateX = (0.5 - relativeY) * 6;
+    const tilt = ctaTiltRef.current;
+    tilt.targetX = rotateX;
+    tilt.targetY = rotateY;
+    tilt.targetScale = 1.015;
+  };
 
-  useEffect(() => {
-    lastScrollYRef.current = window.scrollY;
-    lastScrollTimeRef.current = performance.now();
-
-    const syncDurationByScrollSpeed = () => {
-      const now = performance.now();
-      const y = window.scrollY;
-      const dt = Math.max(now - lastScrollTimeRef.current, 1);
-      const dy = Math.abs(y - lastScrollYRef.current);
-      const velocityPxPerSec = (dy / dt) * 1000;
-
-      // Faster scroll => faster badge transition.
-      const mapped = Math.round(360 - Math.min(velocityPxPerSec, 3000) * 0.08);
-      const nextDuration = Math.max(110, Math.min(360, mapped));
-
-      if (Math.abs(nextDuration - currentDurationRef.current) >= 18) {
-        currentDurationRef.current = nextDuration;
-        setNavBadgeTransitionMs(nextDuration);
-      }
-
-      lastScrollYRef.current = y;
-      lastScrollTimeRef.current = now;
-      rafRef.current = null;
-    };
-
-    const onScroll = () => {
-      if (rafRef.current !== null) return;
-      rafRef.current = window.requestAnimationFrame(syncDurationByScrollSpeed);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, []);
+  const resetCtaBandTilt = () => {
+    // Freeze at the pose just before mouse leaves.
+    const tilt = ctaTiltRef.current;
+    tilt.targetX = tilt.currentX;
+    tilt.targetY = tilt.currentY;
+    tilt.targetScale = tilt.currentScale;
+  };
 
   useEffect(() => {
     const syncCtaWidths = () => {
@@ -256,129 +330,462 @@ export default function LandingPage() {
     syncCtaWidths();
     window.addEventListener("resize", syncCtaWidths);
     return () => window.removeEventListener("resize", syncCtaWidths);
-  }, [c.cta, currentSeason.label, lang]);
+  }, [c.cta, lang]);
+
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlBg = html.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+
+    html.style.backgroundColor = footerRevealBg;
+    body.style.backgroundColor = footerRevealBg;
+
+    return () => {
+      html.style.backgroundColor = prevHtmlBg;
+      body.style.backgroundColor = prevBodyBg;
+    };
+  }, [footerRevealBg]);
+
+  useEffect(() => {
+    const target = statsSectionRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setIsStatsVisible(true);
+        observer.disconnect();
+      },
+      { threshold: 0.35 },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const imgEl = ctaBandImageRef.current;
+    if (!imgEl) return;
+
+    let raf = 0;
+    /** More page scroll → larger scale (not tied to element proximity). */
+    const updateCtaImageScrollScale = () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        imgEl.style.setProperty("--scroll-scale", "1");
+        return;
+      }
+
+      const scrollY = window.scrollY ?? document.documentElement.scrollTop ?? 0;
+      const scrollPxToMax = 640;
+      const t = Math.max(0, Math.min(1, scrollY / scrollPxToMax));
+      const eased = 1 - (1 - t) ** 1.85;
+      const minScale = 0.86;
+      const maxScale = 0.99;
+      const scale = minScale + (maxScale - minScale) * eased;
+      imgEl.style.setProperty("--scroll-scale", String(scale));
+    };
+
+    const onScrollOrResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateCtaImageScrollScale);
+    };
+
+    updateCtaImageScrollScale();
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [ctaBandImageSrc, lang, theme]);
+
+  useEffect(() => {
+    const imgEl = ctaBandImageRef.current;
+    if (!imgEl) return;
+
+    let raf = 0;
+    const animateTilt = () => {
+      const tilt = ctaTiltRef.current;
+      const lerp = 0.14;
+
+      tilt.currentX += (tilt.targetX - tilt.currentX) * lerp;
+      tilt.currentY += (tilt.targetY - tilt.currentY) * lerp;
+      tilt.currentScale += (tilt.targetScale - tilt.currentScale) * lerp;
+
+      imgEl.style.setProperty("--tilt-x", `${tilt.currentX.toFixed(3)}deg`);
+      imgEl.style.setProperty("--tilt-y", `${tilt.currentY.toFixed(3)}deg`);
+      imgEl.style.setProperty("--tilt-scale", String(Number(tilt.currentScale.toFixed(4))));
+
+      raf = requestAnimationFrame(animateTilt);
+    };
+
+    raf = requestAnimationFrame(animateTilt);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  useEffect(() => {
+    const el = footerRevealRef.current;
+    if (!el) return;
+    const sync = () => {
+      setFooterRevealHeight(Math.ceil(el.getBoundingClientRect().height));
+    };
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    sync();
+    return () => ro.disconnect();
+  }, [lang, theme]);
+
+  useEffect(() => {
+    let raf = 0;
+    const run = () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setFooterLogoLiftPx(0);
+        return;
+      }
+      const doc = document.documentElement;
+      const maxScroll = Math.max(1, doc.scrollHeight - window.innerHeight);
+      const t = (window.scrollY ?? 0) / maxScroll;
+      const zone = Math.max(0, Math.min(1, (t - 0.62) / 0.38));
+      setFooterLogoLiftPx((1 - zone) * 24);
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(run);
+    };
+    run();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [footerRevealHeight]);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const normalizeDeltaY = (event: WheelEvent) => {
+      if (event.deltaMode === 1) return event.deltaY * 16;
+      if (event.deltaMode === 2) return event.deltaY * window.innerHeight;
+      return event.deltaY;
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey) return;
+      if (Math.abs(event.deltaY) < 0.5) return;
+
+      const footerEl = footerRevealRef.current;
+      if (footerEl && event.target instanceof Node && footerEl.contains(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      const slowFactor = 0.28;
+      const nextDelta = normalizeDeltaY(event) * slowFactor;
+      window.scrollBy({ top: nextDelta, left: 0, behavior: "auto" });
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* ─── LANDING HEADER ─── */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border bg-background">
-        <div className="max-w-6xl mx-auto w-full h-full px-6 flex items-center gap-4">
-          <div className="flex items-center">
-            <img src="/logo.png" alt="Keyp. logo" className="h-7 w-auto object-contain" />
+    <>
+      {/* Fixed layer behind main — revealed when main curtain scrolls up */}
+      <footer
+        ref={footerRevealRef}
+        className="fixed bottom-0 left-0 right-0 z-0 flex min-h-[56vh] md:min-h-[62vh] flex-col justify-end pt-6 md:pt-8 text-zinc-300"
+        style={{ backgroundColor: footerRevealBg }}
+      >
+        {/* Sitemap footer block */}
+        <div className="relative z-20 pointer-events-none max-w-6xl mx-auto w-full px-6 pt-14 md:pt-10">
+          <div className={`keyp-footer-primary pointer-events-auto border-b ${footerBorder} pb-8 md:pb-10`}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-8 md:gap-x-10">
+              <div>
+                <p className={`font-mono text-[11px] uppercase tracking-[0.16em] ${footerTextMuted} mb-3`}>
+                  Product
+                </p>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    className={`block py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}
+                    onClick={() => toast(lang === "ko" ? "소개 — 준비 중입니다" : "About — coming soon")}
+                  >
+                    {c.footerNav1}
+                  </button>
+                  <button
+                    type="button"
+                    className={`block py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}
+                    onClick={() => toast(lang === "ko" ? "기능 소개 — 준비 중입니다" : "Features — coming soon")}
+                  >
+                    {lang === "ko" ? "기능" : "Features"}
+                  </button>
+                  <Link href="/feed">
+                    <span className={`inline-flex cursor-pointer py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}>
+                      {lang === "ko" ? "플랫폼 입장" : "Enter Platform"}
+                    </span>
+                  </Link>
+                </div>
+              </div>
+
+              <div>
+                <p className={`font-mono text-[11px] uppercase tracking-[0.16em] ${footerTextMuted} mb-3`}>
+                  Support
+                </p>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    className={`block py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}
+                    onClick={() => toast(lang === "ko" ? "문의 — 준비 중입니다" : "Contact — coming soon")}
+                  >
+                    {c.footerNav2}
+                  </button>
+                  <a
+                    href="mailto:hello@keyp.app"
+                    className={`inline-flex py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}
+                  >
+                    {c.footerNav3}
+                  </a>
+                  <button
+                    type="button"
+                    className={`block py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}
+                    onClick={() => toast(lang === "ko" ? "상태 — 준비 중입니다" : "Status — coming soon")}
+                  >
+                    {c.footerLegalStatus}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className={`font-mono text-[11px] uppercase tracking-[0.16em] ${footerTextMuted} mb-3`}>
+                  Legal
+                </p>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    className={`block py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}
+                    onClick={() => toast(lang === "ko" ? "이용약관 — 준비 중입니다" : "Terms — coming soon")}
+                  >
+                    {c.footerLegalTerms}
+                  </button>
+                  <button
+                    type="button"
+                    className={`block py-2 text-sm md:text-base leading-6 transition-all underline-offset-4 hover:underline ${footerTextPrimary} ${footerHoverText}`}
+                    onClick={() => toast(lang === "ko" ? "개인정보 — 준비 중입니다" : "Privacy — coming soon")}
+                  >
+                    {c.footerLegalPrivacy}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className={`font-mono text-[11px] uppercase tracking-[0.16em] ${footerTextMuted} mb-3`}>
+                  Social
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <a
+                    href="https://github.com/pistolinkr/keyp."
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`h-10 min-w-10 px-3 inline-flex items-center justify-center gap-1 border transition-all ${footerIconButtonClass}`}
+                    aria-label="GitHub"
+                  >
+                    <Github size={16} strokeWidth={1.75} />
+                  </a>
+                  <a
+                    href="mailto:hello@keyp.app"
+                    className={`h-10 min-w-10 px-3 inline-flex items-center justify-center gap-1 border transition-all ${footerIconButtonClass}`}
+                    aria-label="Email"
+                  >
+                    <Mail size={16} strokeWidth={1.75} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={scrollToTop}
+                    className={`h-10 px-3 inline-flex items-center justify-center gap-1 border transition-all ${footerIconButtonClass}`}
+                  >
+                    <ArrowUp size={16} strokeWidth={1.75} />
+                    <span className="font-mono text-xs">{lang === "ko" ? "맨위" : "TOP"}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 ml-5">
-            <span
-              className={`keyp-season-badge keyp-season-badge-header transition-all ease-out ${
-                showHeaderSeasonBadge
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-3 pointer-events-none"
-              }`}
-              style={{ transitionDuration: `${navBadgeTransitionMs}ms` }}
+        </div>
+
+        {/* 거대 로고 컨테이너 */}
+        <div className="keyp-footer-logo relative z-0 pointer-events-none max-w-6xl mx-auto w-full px-6 pt-8 md:pt-10 pb-10 md:pb-12">
+          <div
+            className="will-change-transform flex justify-center"
+            style={{
+              transform: `translateY(${footerLogoLiftPx}px)`,
+              transition: "transform 0.12s ease-out",
+            }}
+          >
+            <p
+              className="font-black text-primary leading-[0.82] select-none whitespace-nowrap text-center"
+              style={{
+                fontFamily:
+                  lang === "ko"
+                    ? "Noto Sans, Noto Sans KR, Apple SD Gothic Neo, system-ui, sans-serif"
+                    : "Noto Sans KR, system-ui, sans-serif",
+                letterSpacing: lang === "ko" ? "-0.01em" : "-0.06em",
+                fontSize: lang === "ko" ? "clamp(4.4rem, 39vw, 29rem)" : "clamp(3.5rem, 36vw, 26rem)",
+                transform: lang === "ko" ? "scaleX(0.9) translateY(0.14em)" : undefined,
+                transformOrigin: "center center",
+              }}
             >
-              {currentSeason.label} · ACTIVE
-            </span>
+              {lang === "ko" ? <>ㅋ<span className="keyp-ko-i-glyph">I</span>ㅂ.</> : "Keyp."}
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom bar: pinned to footer section very bottom */}
+        <div className={`keyp-footer-legal w-full px-[0.7rem] pointer-events-auto py-4 text-xs font-mono flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${footerTextMuted}`}>
+          <p className="px-0">
+            {`Copyright © ${new Date().getFullYear()} Keyp. Production Line.31 served by g.gear service delta team for pistolinkr`}
+          </p>
+          <div className="flex flex-wrap justify-end gap-x-6 gap-y-1">
+            <button
+              type="button"
+              className={`transition-colors underline-offset-4 hover:underline ${footerHoverText}`}
+              onClick={() => toast(lang === "ko" ? "이용약관 — 준비 중입니다" : "Terms — coming soon")}
+            >
+              {c.footerLegalTerms}
+            </button>
+            <button
+              type="button"
+              className={`transition-colors underline-offset-4 hover:underline ${footerHoverText}`}
+              onClick={() => toast(lang === "ko" ? "개인정보 — 준비 중입니다" : "Privacy — coming soon")}
+            >
+              {c.footerLegalPrivacy}
+            </button>
+          </div>
+        </div>
+      </footer>
+
+      {/* Main curtain — higher z-index, opaque theme bg, bottom margin = footer height */}
+      <div
+        className="relative z-10 min-h-screen text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
+        style={{
+          backgroundColor: mainCurtainBg,
+          marginBottom: footerRevealHeight,
+        }}
+      >
+      {/* ─── LANDING HEADER ─── */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-[4.5rem] border-b border-border keyp-navbar">
+        <div className="max-w-6xl mx-auto w-full h-full px-6 flex items-center gap-4">
+          <div className="flex items-center">
+            <img src="/logo.png" alt="Keyp. logo" className="h-9 w-auto object-contain" />
           </div>
 
           <div className="flex-1" />
 
-          <div className="keyp-lang-toggle keyp-header-control">
+          <div className="keyp-lang-toggle keyp-header-control !h-9">
             <button className={lang === 'ko' ? 'active' : ''} onClick={() => setLang('ko')}>KO</button>
             <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>EN</button>
           </div>
 
-          <button className="keyp-header-control w-8 hover:bg-accent transition-colors" onClick={toggleTheme}>
-            {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+          <button className="keyp-header-control !h-9 w-9 hover:bg-accent transition-colors" onClick={toggleTheme}>
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
 
           <Link href="/feed">
-            <button className="keyp-btn-primary h-8 px-5 flex items-center gap-1.5">
+            <button className="keyp-btn-primary h-10 px-6 text-sm flex items-center gap-1.5">
               {lang === 'ko' ? '입장하기' : 'Enter'}
-              <ArrowRight size={14} />
+              <ArrowRight size={15} />
             </button>
           </Link>
         </div>
       </header>
+      <NavbarScrollBlur />
 
-      {/* ─── HERO SECTION ─── */}
-      <section className="pt-14 relative overflow-hidden">
-        {/* Hero image */}
-        <div className="relative h-[480px] md:h-[560px] overflow-hidden">
-          <img
-            src={HERO_BANNER}
-            alt="Keyp. Platform"
-            className="w-full h-full object-cover"
-          />
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-transparent" />
-
-          {/* Hero text */}
-          <div className="absolute inset-0 flex items-center">
-            <div className="max-w-6xl mx-auto w-full px-6">
-              <div className="max-w-2xl">
-                <div className="flex items-center mb-6">
-                  <span className="keyp-section-label">KNOWLEDGE COMMUNITY</span>
-                </div>
-
-                <h1
-                  className="text-4xl md:text-6xl font-black leading-none mb-6 text-foreground"
-                  style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.04em' }}
+      {/* ─── CTA BAND + FEATURE STRIP ─── */}
+      <section className="pt-[4.5rem] bg-card border-t border-border">
+        <div className="max-w-6xl mx-auto px-6 pt-16 pb-8 md:pt-24 md:pb-12">
+          <div
+            ref={ctaHeadlineRef}
+            className="flex flex-col md:flex-row md:items-end md:justify-between gap-10 md:gap-12"
+          >
+            <div className="max-w-xl">
+              <h2
+                className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground leading-[1.12]"
+                style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.04em' }}
+              >
+                {lang === 'ko' ? (
+                  <>
+                    일 년 동안 여기에{' '}
+                    <span className="text-primary">'Keyp'</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-primary">Keyp</span>
+                    {' '}your post on here!
+                  </>
+                )}
+              </h2>
+              <p className="mt-5 text-sm md:text-base text-muted-foreground leading-relaxed max-w-md">
+                {c.ctaBandSub}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full sm:w-auto">
+              <Link href="/feed" className="inline-flex">
+                <button
+                  type="button"
+                  className="keyp-btn-primary inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold w-full sm:w-auto"
                 >
-                  {c.tagline}
-                </h1>
+                  {c.ctaPrimary}
+                  <ArrowUpRight size={18} strokeWidth={2} />
+                </button>
+              </Link>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold border border-border bg-muted text-foreground hover:bg-accent transition-colors w-full sm:w-auto"
+                onClick={() => toast(lang === 'ko' ? '가입 — 준비 중입니다' : 'Sign up — coming soon')}
+              >
+                {c.ctaSecondary}
+                <ArrowUpRight size={18} strokeWidth={2} />
+              </button>
+            </div>
+          </div>
+        </div>
 
-                <p className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg whitespace-pre-line">
-                  {c.subtitle}
-                </p>
-
-                <div
-                  ref={heroCtaContainerRef}
-                  className="relative inline-flex items-stretch h-12 overflow-hidden"
-                  onMouseEnter={() => setIsHeroCtaHovered(true)}
-                  onMouseLeave={() => setIsHeroCtaHovered(false)}
-                >
-                  <Link href="/feed" className="relative z-20">
-                    <button
-                      ref={heroCtaButtonRef}
-                      className="keyp-btn-primary flex items-center justify-center text-[19px] px-6 py-0 h-12 bg-transparent"
-                    >
-                      <span
-                        className="flex items-center gap-2 transition-transform duration-300 ease-out"
-                        style={{
-                          transform: `translateX(${isHeroCtaHovered ? heroCtaPullOffset : 0}px)`,
-                        }}
-                      >
-                        {c.cta}
-                        <ArrowRight size={16} />
-                      </span>
-                    </button>
-                  </Link>
-                  <span ref={heroBadgeRef} className="keyp-season-badge text-xs h-12 -ml-px pr-6 relative z-0">{currentSeason.label} · ACTIVE</span>
-                  <div
-                    className="pointer-events-none absolute inset-y-0 left-0 z-10 bg-primary transition-all duration-300 ease-out"
-                    style={{ width: `${isHeroCtaHovered ? heroCtaContainerWidth : heroCtaButtonWidth}px` }}
-                  />
-                </div>
-              </div>
+        <div className="max-w-7xl xl:max-w-[96rem] mx-auto px-4 py-6 md:px-6 md:py-10 flex justify-center items-end min-h-[320px] md:min-h-[420px]">
+          <div
+            ref={ctaImageWrapRef}
+            className="w-fit max-w-full overflow-visible border-border bg-card p-4 md:p-6"
+          >
+            <div
+              className="inline-block max-w-full select-none"
+              onMouseMove={applyCtaBandTilt}
+              onMouseLeave={resetCtaBandTilt}
+            >
+              <img
+                ref={ctaBandImageRef}
+                src={ctaBandImageSrc}
+                alt=""
+                className="pointer-events-none block h-auto w-auto max-w-full rounded-[20px] border-[0.7px] border-border keyp-tilt-image keyp-landing-cta-scroll"
+                loading="lazy"
+              />
             </div>
           </div>
         </div>
       </section>
 
       {/* ─── STATS BAR ─── */}
-      <section className="border-y border-border bg-card">
+      <section ref={statsSectionRef} className="border-t border-border bg-card">
         <div className="max-w-6xl mx-auto px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-0">
           {c.stats.map((stat, i) => (
-            <div
-              key={i}
-              className={`px-6 py-4 ${i < c.stats.length - 1 ? 'border-r border-border' : ''} animate-fade-in-up`}
-              style={{ animationDelay: `${i * 0.08}s` }}
-            >
-              <div className="font-black text-3xl text-foreground mb-1" style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.04em' }}>
-                {stat.value}
-              </div>
-              <div className="keyp-section-label">{stat.label}</div>
-            </div>
+            <LandingStatCard key={stat.label} stat={stat as LandingStat} index={i} isVisible={isStatsVisible} />
           ))}
         </div>
       </section>
@@ -391,9 +798,26 @@ export default function LandingPage() {
             className="text-3xl md:text-4xl font-black text-foreground mb-4"
             style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em' }}
           >
-            {c.trendTitle}
+            {lang === "ko" ? (
+              <>
+                2026 <span className="text-primary">한국</span> 트렌드 키워드
+              </>
+            ) : (
+              c.trendTitle
+            )}
           </h2>
-          <p className="text-muted-foreground max-w-3xl">{c.trendSubtitle}</p>
+          <p className="text-muted-foreground max-w-3xl">
+            {lang === "ko" ? (
+              <>
+                <span className="text-primary">한국</span>
+                의 시장, 정책, 생활 변화에서 출발한 2026 핵심 키워드를 빠르게 파악합니다.
+              </>
+            ) : (
+              <>
+                Track 2026 signals rooted in <span className="text-primary">Korean</span> market shifts, policy changes, and daily life.
+              </>
+            )}
+          </p>
         </div>
 
         <div
@@ -401,7 +825,7 @@ export default function LandingPage() {
           style={{ borderColor: "rgba(245, 220, 74, 0.45)" }}
         >
           <div className="flex flex-wrap gap-2.5">
-            {TREND_ARTICLES_2026.map((item) => (
+            {TREND_KEYWORD_BRIEFS.map((item) => (
               <button
                 key={item.keyword}
                 type="button"
@@ -456,7 +880,17 @@ export default function LandingPage() {
             className="text-3xl md:text-4xl font-black text-foreground"
             style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em' }}
           >
-            {lang === 'ko' ? '왜 Keyp.인가?' : 'Why Keyp.?'}
+            {lang === 'ko' ? (
+              <>
+                이것으로{' '}
+                <span className="text-primary">Keyp</span>
+                하는 방법과 이유?
+              </>
+            ) : (
+              <>
+                How to <span className="text-primary">Keyp</span> with this and why?
+              </>
+            )}
           </h2>
         </div>
 
@@ -481,193 +915,71 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── SEASON SYSTEM ─── */}
-      <section className="border-y border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16 flex flex-col md:flex-row gap-12 items-center">
-          <div className="flex-1 flex flex-col justify-center">
-            <p className="keyp-section-label mb-3">SEASON SYSTEM</p>
-            <h2
-              className="text-3xl font-black mb-4 text-foreground"
-              style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.03em' }}
-            >
-              {lang === 'ko' ? '매년 새롭게 시작하는\n지식의 시즌' : 'A New Season of\nKnowledge Every Year'}
-            </h2>
-            <p className="text-muted-foreground leading-relaxed mb-6 max-w-md">
-              {lang === 'ko'
-                ? '시즌제는 단순한 필터가 아닙니다. 매년 1월 1일 새로운 시즌이 시작되며, 과거 시즌의 글은 읽기 전용 아카이브로 보존됩니다. 공정한 경쟁, 새로운 기회.'
-                : 'The season system is more than a filter. A new season begins every January 1st, and posts from past seasons are preserved as read-only archives. Fair competition, new opportunities.'}
-            </p>
-          </div>
+      {/* ─── HERO SECTION ─── */}
+      <section className="relative overflow-hidden">
+        {/* Hero image */}
+        <div className="relative h-[480px] md:h-[560px] overflow-hidden">
+          {/* Hero text */}
+          <div className="absolute inset-0 flex items-center">
+            <div className="max-w-6xl mx-auto w-full px-6">
+              <div className="max-w-2xl">
+                <div className="flex items-center mb-6">
+                  <span className="keyp-section-label">KOREA CONTEXT FIRST</span>
+                </div>
 
-          <div className="flex-1 flex justify-end">
-            <div className="w-full max-w-sm border border-border bg-card p-6 md:p-8">
-              <div className="flex items-center justify-between mb-4">
-                <span className="keyp-section-label">CURRENT SEASON</span>
-                <span className="keyp-season-badge">LIVE</span>
-              </div>
-              <div
-                className="text-5xl font-black mb-2 text-foreground"
-                style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.04em' }}
-              >
-                {currentSeason.label}
-              </div>
-              <div className="font-mono text-sm text-muted-foreground mb-4">
-                2026.01.01 → ONGOING
-              </div>
-              <div className="keyp-divider mb-4" />
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="font-bold text-xl">{currentSeason.episodeCount}</div>
-                  <div className="font-mono text-xs text-muted-foreground">EPISODES</div>
-                </div>
-                <div>
-                  <div className="font-bold text-xl">1.2K</div>
-                  <div className="font-mono text-xs text-muted-foreground">MEMBERS</div>
-                </div>
-                <div>
-                  <div className="font-bold text-xl">89%</div>
-                  <div className="font-mono text-xs text-muted-foreground">ACTIVE</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── CTA BAND + FEATURE STRIP ─── */}
-      <section className="bg-card border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16 md:py-24">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-10 md:gap-12">
-            <div className="max-w-xl">
-              <h2
-                className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground leading-[1.12]"
-                style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.04em' }}
-              >
-                {lang === 'ko' ? (
-                  <>
-                    몇 <span className="text-primary">분</span> 만에
-                    <br />
-                    시작하세요
-                  </>
-                ) : (
-                  <>
-                    Get started in{' '}
-                    <span className="text-primary">minutes</span>
-                  </>
-                )}
-              </h2>
-              <p className="mt-5 text-sm md:text-base text-muted-foreground leading-relaxed max-w-md">
-                {c.ctaBandSub}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full sm:w-auto">
-              <Link href="/feed" className="inline-flex">
-                <button
-                  type="button"
-                  className="keyp-btn-primary inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold w-full sm:w-auto"
+                <h1
+                  className="text-4xl md:text-6xl font-black leading-none mb-6 text-foreground"
+                  style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.04em' }}
                 >
-                  {c.ctaPrimary}
-                  <ArrowUpRight size={18} strokeWidth={2} />
-                </button>
-              </Link>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold border border-border bg-muted text-foreground hover:bg-accent transition-colors w-full sm:w-auto"
-                onClick={() => toast(lang === 'ko' ? '가입 — 준비 중입니다' : 'Sign up — coming soon')}
-              >
-                {c.ctaSecondary}
-                <ArrowUpRight size={18} strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-        </div>
+                  {lang === 'ko' ? (
+                    <>
+                      <span className="text-primary">한국</span>
+                      의 맥락으로 읽고, 세계와 연결된다
+                    </>
+                  ) : (
+                    <>
+                      Read <span className="text-primary">Korea</span> in context, connect to the world
+                    </>
+                  )}
+                </h1>
 
-        <div className="max-w-6xl mx-auto px-6 pb-0">
-          <div className="w-full aspect-[21/7] md:aspect-[24/7] overflow-hidden border-y border-border bg-muted">
-            <img
-              src={ctaBandImageSrc}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+                <p className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg whitespace-pre-line">
+                  {c.subtitle}
+                </p>
+
+                <div
+                  ref={heroCtaContainerRef}
+                  className="relative inline-flex items-stretch h-12 overflow-hidden"
+                  onMouseEnter={() => setIsHeroCtaHovered(true)}
+                  onMouseLeave={() => setIsHeroCtaHovered(false)}
+                >
+                  <Link href="/feed" className="relative z-20">
+                    <button
+                      ref={heroCtaButtonRef}
+                      className="keyp-btn-primary flex items-center justify-center text-[19px] px-6 py-0 h-12 bg-transparent"
+                    >
+                      <span
+                        className="flex items-center gap-2 transition-transform duration-300 ease-out"
+                        style={{
+                          transform: `translateX(${isHeroCtaHovered ? heroCtaPullOffset : 0}px)`,
+                        }}
+                      >
+                        {c.cta}
+                        <ArrowRight size={16} />
+                      </span>
+                    </button>
+                  </Link>
+                  <div
+                    className="pointer-events-none absolute inset-y-0 left-0 z-10 bg-primary transition-all duration-300 ease-out"
+                    style={{ width: `${isHeroCtaHovered ? heroCtaContainerWidth : heroCtaButtonWidth}px` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
-
-      {/* ─── FOOTER ─── */}
-      <footer className="border-t border-border bg-background">
-        <div className="max-w-6xl mx-auto px-6 pt-10 pb-6">
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-            <Link href="/" className="flex items-center shrink-0">
-              <img src="/logo.png" alt="Keyp." className="h-6 w-auto object-contain" />
-            </Link>
-            <nav className="flex flex-wrap justify-center md:justify-center gap-x-8 gap-y-2 md:gap-10">
-              <button
-                type="button"
-                className="keyp-section-label hover:text-foreground transition-colors"
-                onClick={() => toast(lang === 'ko' ? '소개 — 준비 중입니다' : 'About — coming soon')}
-              >
-                {c.footerNav1}
-              </button>
-              <button
-                type="button"
-                className="keyp-section-label hover:text-foreground transition-colors"
-                onClick={() => toast(lang === 'ko' ? '문의 — 준비 중입니다' : 'Contact — coming soon')}
-              >
-                {c.footerNav2}
-              </button>
-              <a
-                href="mailto:hello@keyp.app"
-                className="keyp-section-label hover:text-foreground transition-colors"
-              >
-                {c.footerNav3}
-              </a>
-            </nav>
-            <div className="flex justify-center md:justify-end gap-4">
-              <a
-                href="https://github.com/pistolinkr/keyp."
-                target="_blank"
-                rel="noreferrer"
-                className="text-foreground hover:text-primary transition-colors p-1"
-                aria-label="GitHub"
-              >
-                <Github size={18} strokeWidth={1.75} />
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="border-t border-border">
-          <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-muted-foreground font-mono">
-            <p>
-              {lang === 'ko'
-                ? `© ${new Date().getFullYear()} Keyp.`
-                : `Copyright © ${new Date().getFullYear()} Keyp.`}
-            </p>
-            <div className="flex flex-wrap gap-x-6 gap-y-1">
-              <button
-                type="button"
-                className="hover:text-foreground transition-colors"
-                onClick={() => toast(lang === 'ko' ? '상태 — 준비 중입니다' : 'Status — coming soon')}
-              >
-                {c.footerLegalStatus}
-              </button>
-              <button
-                type="button"
-                className="hover:text-foreground transition-colors"
-                onClick={() => toast(lang === 'ko' ? '이용약관 — 준비 중입니다' : 'Terms — coming soon')}
-              >
-                {c.footerLegalTerms}
-              </button>
-              <button
-                type="button"
-                className="hover:text-foreground transition-colors"
-                onClick={() => toast(lang === 'ko' ? '개인정보 — 준비 중입니다' : 'Privacy — coming soon')}
-              >
-                {c.footerLegalPrivacy}
-              </button>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </>
   );
 }

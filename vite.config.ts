@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { handleAiPath } from "./server/ai";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -150,7 +151,62 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+function vitePluginLocalAiApi(): Plugin {
+  return {
+    name: "local-ai-api",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use("/api/ai", (req, res, next) => {
+        if (req.method !== "POST") {
+          return next();
+        }
+
+        const pathname = req.url?.startsWith("/summary")
+          ? "/api/ai/summary"
+          : req.url?.startsWith("/assistant")
+            ? "/api/ai/assistant"
+            : req.url?.startsWith("/translate")
+              ? "/api/ai/translate"
+            : "";
+
+        if (!pathname) {
+          return next();
+        }
+
+        let body = "";
+        req.on("data", (chunk) => {
+          body += chunk.toString();
+        });
+        req.on("end", async () => {
+          try {
+            const payload = body ? JSON.parse(body) : {};
+            const data = await handleAiPath(pathname, payload);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(data));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Unknown AI error";
+            const status = message.toLowerCase().includes("ollama") ? 503 : 400;
+            res.writeHead(status, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                error: message,
+                hint: status === 503 ? "Make sure Ollama is running locally and model is pulled." : undefined,
+              }),
+            );
+          }
+        });
+      });
+    },
+  };
+}
+
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+  vitePluginLocalAiApi(),
+];
 
 export default defineConfig({
   plugins,

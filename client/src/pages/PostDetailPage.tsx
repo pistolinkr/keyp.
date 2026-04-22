@@ -7,14 +7,39 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { posts, comments, currentUser } from "@/lib/mockData";
-import type { Comment } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
+import type { Comment, Post } from "@/lib/mockData";
+import { getPostById, getCommentsForPost } from "@/lib/contentApi";
+import {
+  createArticleComment,
+  getEngagementState,
+  subscribeArticleEngagement,
+  toggleArticleBookmark,
+  toggleArticleUpvote,
+} from "@/lib/engagementApi";
+import { requestAiAssistant } from "@/lib/aiApi";
 import {
   ArrowUp, MessageSquare, Bookmark, Clock, Eye, Share2,
   ChevronLeft, Sparkles, X, Send, ArrowDown, ChevronRight,
   Star, CornerDownRight, Globe
 } from "lucide-react";
 import { toast } from "sonner";
+
+function useCommentComposerIdentity() {
+  const { user } = useAuth();
+  const md = user?.userMetadata;
+  const avatar =
+    typeof md?.avatar_url === "string"
+      ? md.avatar_url
+      : PLACEHOLDER_AVATAR;
+  const displayName =
+    (typeof md?.full_name === "string" && md.full_name) ||
+    (typeof md?.name === "string" && md.name) ||
+    user?.email?.split("@")[0] ||
+    "Guest";
+  return { avatar, displayName };
+}
 
 // ─── COMMENT COMPONENT ───
 function CommentItem({
@@ -26,19 +51,33 @@ function CommentItem({
   lang: 'ko' | 'en';
   depth?: number;
 }) {
+  const { avatar: composerAvatar, displayName: composerName } = useCommentComposerIdentity();
   const [upvoted, setUpvoted] = useState(false);
   const [showReply, setShowReply] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  const depthColors = [
-    'border-l-primary/60',
-    'border-l-primary/40',
-    'border-l-primary/25',
-    'border-l-primary/15',
+  const depthLineStyles = [
+    { line: 'bg-primary/60', border: 'border-primary/60' },
+    { line: 'bg-primary/40', border: 'border-primary/40' },
+    { line: 'bg-primary/25', border: 'border-primary/25' },
+    { line: 'bg-primary/15', border: 'border-primary/15' },
   ];
+  const depthStyle = depthLineStyles[Math.min(depth - 1, 3)];
 
   return (
-    <div className={`${depth > 0 ? `pl-4 border-l-2 ${depthColors[Math.min(depth - 1, 3)]}` : ''}`}>
+    <div className={`relative ${depth > 0 ? 'pl-5' : ''}`}>
+      {depth > 0 && (
+        <>
+          <span
+            aria-hidden
+            className={`absolute left-[6px] top-0 bottom-0 w-px ${depthStyle.line}`}
+          />
+          <span
+            aria-hidden
+            className={`absolute left-[6px] top-[17px] h-[8px] w-[10px] border-l border-b rounded-bl-sm ${depthStyle.border}`}
+          />
+        </>
+      )}
       <div className="py-3">
         {/* Comment header */}
         <div className="flex items-center gap-2 mb-2">
@@ -112,8 +151,8 @@ function CommentItem({
             {showReply && (
               <div className="mt-3 flex gap-2">
                 <img
-                  src={currentUser.avatar}
-                  alt={currentUser.displayName}
+                  src={composerAvatar}
+                  alt={composerName}
                   className="w-6 h-6 object-cover border border-border shrink-0 mt-0.5"
                 />
                 <div className="flex-1 flex gap-2">
@@ -140,7 +179,7 @@ function CommentItem({
 
       {/* Nested replies */}
       {!collapsed && comment.replies && comment.replies.length > 0 && (
-        <div className="ml-4">
+        <div className="ml-5">
           {comment.replies.map((reply) => (
             <CommentItem key={reply.id} comment={reply} lang={lang} depth={depth + 1} />
           ))}
@@ -151,44 +190,63 @@ function CommentItem({
 }
 
 // ─── AI PANEL ───
-function AIPanel({ onClose, lang }: { onClose: () => void; lang: 'ko' | 'en' }) {
+function AIPanel({
+  onClose,
+  lang,
+  postTitle,
+  postContent,
+}: {
+  onClose: () => void;
+  lang: 'ko' | 'en';
+  postTitle: string;
+  postContent: string;
+}) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([
     {
       role: 'ai',
       text: lang === 'ko'
-        ? '안녕하세요! 이 글에 대해 궁금한 점이 있으신가요? 내용 요약, 핵심 개념 설명, 관련 자료 추천 등을 도와드릴 수 있습니다.'
-        : "Hello! Do you have questions about this article? I can help with summaries, explaining key concepts, or recommending related resources.",
+        ? '안녕하세요! 이 글 문맥에 맞춰 핵심 요약, 논리 점검, 표현 개선 제안을 도와드릴게요.'
+        : "Hello! I can help with context-aware summary, logic checks, and writing improvements for this article.",
     },
   ]);
   const [loading, setLoading] = useState(false);
-
-  const aiResponses = {
-    ko: [
-      '2026년 트렌드에서 휴먼인더루프는 AI가 초안을 만들고 사람이 책임 판단을 내리는 협업 구조를 뜻합니다. 특히 AX조직 설계와 함께 논의됩니다.',
-      '프라이스 디코딩과 제로클릭은 함께 봐야 합니다. 클릭 이전에 정보가 소비되는 환경일수록 가격 구조를 해석하는 역량이 더 중요해집니다.',
-      '관련 읽을거리로 랜딩의 2026 트렌드 특집(휴먼인더루프, 필코노미, 제로클릭, 레디코어, AX조직, 픽셀라이프 등)을 추천드립니다.',
-    ],
-    en: [
-      'In 2026 trends, Human-in-the-Loop means AI creates drafts while humans keep final accountability. It is tightly connected to AX organization design.',
-      'Price Decoding and Zero Click should be read together. The less users click, the more important pricing-structure literacy becomes.',
-      'For related reading, check the 2026 trend special on the landing page covering Human-in-the-Loop, Feelconomy, Zero Click, Ready Core, AX Organization, and Pixel Life.',
-    ],
-  };
-
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const userMsg = input;
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setLoading(true);
 
-    setTimeout(() => {
-      const responses = aiResponses[lang];
-      const response = responses[Math.floor(Math.random() * responses.length)];
-      setMessages(prev => [...prev, { role: 'ai', text: response }]);
+    try {
+      const history: Array<{ role: "user" | "assistant"; text: string }> = messages
+        .slice(-6)
+        .map((m) => ({
+          role: m.role === "ai" ? "assistant" : "user",
+          text: m.text,
+        }));
+      const { reply } = await requestAiAssistant({
+        message: userMsg,
+        title: postTitle,
+        content: postContent.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+        lang,
+        history,
+      });
+      setMessages(prev => [...prev, { role: 'ai', text: reply }]);
+    } catch (error: any) {
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "ai",
+          text:
+            lang === "ko"
+              ? `AI 응답 실패: ${error?.message ?? "알 수 없는 오류"}`
+              : `AI response failed: ${error?.message ?? "Unknown error"}`,
+        },
+      ]);
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -273,7 +331,7 @@ function AIPanel({ onClose, lang }: { onClose: () => void; lang: 'ko' | 'en' }) 
           </button>
         </div>
         <p className="font-mono text-xs text-muted-foreground mt-2">
-          {lang === 'ko' ? 'Ollama 로컬 AI · OpenAI 폴백' : 'Ollama Local AI · OpenAI Fallback'}
+          {lang === 'ko' ? 'Ollama 로컬 AI' : 'Ollama Local AI'}
         </p>
       </div>
     </div>
@@ -286,6 +344,8 @@ interface PostDetailPageProps {
 }
 
 export default function PostDetailPage({ id }: PostDetailPageProps) {
+  const { user } = useAuth();
+  const isLocalDevUser = user?.isLocalDev === true;
   const { lang: globalLang } = useLanguage();
   const [lang, setLang] = useState<'ko' | 'en'>(globalLang);
   const [langTransitioning, setLangTransitioning] = useState(false);
@@ -294,12 +354,62 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
   const [bookmarked, setBookmarked] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [commentInput, setCommentInput] = useState('');
+  const [engagementLoading, setEngagementLoading] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [post, setPost] = useState<Post | null>(null);
+  const [postComments, setPostComments] = useState<Comment[]>([]);
+  const [detailLoading, setDetailLoading] = useState(true);
+  const { avatar: composerAvatar, displayName: composerDisplayName } = useCommentComposerIdentity();
 
-  const post = posts.find(p => p.id === id) || posts[0];
-  const postComments = comments.filter(c => c.postId === post.id);
-  const diff = { beginner: { ko: '입문', en: 'Beginner' }, intermediate: { ko: '중급', en: 'Intermediate' }, advanced: { ko: '심화', en: 'Advanced' } }[post.difficulty];
+  useEffect(() => {
+    let cancelled = false;
+    setDetailLoading(true);
+    setPost(null);
+    setPostComments([]);
+    (async () => {
+      const [p, c, state] = await Promise.all([
+        getPostById(id),
+        getCommentsForPost(id),
+        getEngagementState(id),
+      ]);
+      if (cancelled) return;
+      setPost(p);
+      setPostComments(c);
+      if (state.ok) {
+        setUpvoted(state.upvoted);
+        setBookmarked(state.bookmarked);
+      } else {
+        setUpvoted(false);
+        setBookmarked(false);
+      }
+      setDetailLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeArticleEngagement(id, () => {
+      void (async () => {
+        const [latestPost, latestComments, state] = await Promise.all([
+          getPostById(id),
+          getCommentsForPost(id),
+          getEngagementState(id),
+        ]);
+        setPost(latestPost);
+        setPostComments(latestComments);
+        if (state.ok) {
+          setUpvoted(state.upvoted);
+          setBookmarked(state.bookmarked);
+        }
+      })();
+    });
+    return () => {
+      unsubscribe?.();
+    };
+  }, [id]);
 
   // Reading progress
   useEffect(() => {
@@ -312,9 +422,23 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
       ));
       setReadProgress(progress);
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Reflect story progress on the native page scrollbar.
+  useEffect(() => {
+    document.body.classList.add("story-progress-scrollbar");
+    return () => {
+      document.body.classList.remove("story-progress-scrollbar");
+      document.body.style.removeProperty("--story-read-progress");
+    };
+  }, []);
+
+  useEffect(() => {
+    document.body.style.setProperty("--story-read-progress", `${readProgress}%`);
+  }, [readProgress]);
 
   // Language transition (no layout shift)
   const handleLangChange = (newLang: 'ko' | 'en') => {
@@ -346,16 +470,35 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
     setLang(globalLang);
   }, [id]);
 
+  if (detailLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-6">
+        <p className="font-mono text-sm text-muted-foreground">
+          {globalLang === "ko" ? "불러오는 중…" : "Loading…"}
+        </p>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+        <p className="text-muted-foreground mb-6">
+          {globalLang === "ko" ? "글을 찾을 수 없습니다." : "Post not found."}
+        </p>
+        <Link href="/feed">
+          <span className="text-sm text-primary hover:underline cursor-pointer">
+            {globalLang === "ko" ? "피드로 돌아가기" : "Back to feed"}
+          </span>
+        </Link>
+      </div>
+    );
+  }
+
+  const diff = { beginner: { ko: '입문', en: 'Beginner' }, intermediate: { ko: '중급', en: 'Intermediate' }, advanced: { ko: '심화', en: 'Advanced' } }[post.difficulty];
+
   return (
     <div className="relative">
-      {/* Reading progress bar */}
-      <div className="fixed top-14 left-0 right-0 z-40 h-0.5 bg-border">
-        <div
-          className="h-full bg-primary transition-all duration-100"
-          style={{ width: `${readProgress}%` }}
-        />
-      </div>
-
       <div className="flex">
         {/* ─── ARTICLE ─── */}
         <div className={`flex-1 min-w-0 transition-all duration-200 ${showAI ? 'mr-0' : ''}`}>
@@ -364,7 +507,7 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
             <Link href="/feed">
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 cursor-pointer w-fit">
                 <ChevronLeft size={16} />
-                {lang === 'ko' ? '피드로 돌아가기' : 'Back to Feed'}
+                {globalLang === 'ko' ? '피드로 돌아가기' : 'Back to Feed'}
               </div>
             </Link>
 
@@ -372,9 +515,6 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
             <header className="mb-8">
               {/* Meta */}
               <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <span className="keyp-season-badge">
-                  {post.seasonId.toUpperCase()} · EP.{post.episode}
-                </span>
                 <span className="font-mono text-xs text-muted-foreground">
                   {lang === 'ko' ? post.category : post.categoryEn}
                 </span>
@@ -502,10 +642,44 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                     ? 'border-primary text-primary bg-primary/5'
                     : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
                 }`}
-                onClick={() => setUpvoted(!upvoted)}
+                onClick={async () => {
+                  if (!post || engagementLoading) return;
+                  setEngagementLoading(true);
+                  const state = await toggleArticleUpvote(post.id);
+                  if (!state.ok) {
+                    if (state.error === "not_authenticated") {
+                      if (isLocalDevUser) {
+                        toast(
+                          lang === "ko"
+                            ? "로컬 개발 로그인 상태에서는 추천 기능을 사용할 수 없습니다. 이메일 로그인으로 전환해 주세요."
+                            : "Upvotes are unavailable in local-dev login mode. Sign in with email.",
+                        );
+                      } else {
+                        toast(lang === "ko" ? "추천 기능은 로그인 후 사용할 수 있습니다." : "Sign in to use upvotes.");
+                      }
+                    } else {
+                      toast(lang === "ko" ? "추천 처리 실패" : "Failed to update upvote");
+                    }
+                    setEngagementLoading(false);
+                    return;
+                  }
+                  setUpvoted(state.upvoted);
+                  setPost((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          upvoteCount: state.counters.upvotes,
+                          commentCount: state.counters.comments,
+                          bookmarkCount: state.counters.bookmarks,
+                        }
+                      : prev,
+                  );
+                  setEngagementLoading(false);
+                }}
+                disabled={engagementLoading}
               >
                 <ArrowUp size={15} />
-                {post.upvoteCount + (upvoted ? 1 : 0)}
+                {post.upvoteCount}
               </button>
 
               <a href="#comments">
@@ -521,10 +695,42 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                     ? 'border-primary text-primary bg-primary/5'
                     : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
                 }`}
-                onClick={() => {
-                  setBookmarked(!bookmarked);
-                  toast(bookmarked ? '북마크 해제' : '북마크 저장됨');
+                onClick={async () => {
+                  if (!post || engagementLoading) return;
+                  setEngagementLoading(true);
+                  const state = await toggleArticleBookmark(post.id);
+                  if (!state.ok) {
+                    if (state.error === "not_authenticated") {
+                      if (isLocalDevUser) {
+                        toast(
+                          lang === "ko"
+                            ? "로컬 개발 로그인 상태에서는 북마크를 사용할 수 없습니다. 이메일 로그인으로 전환해 주세요."
+                            : "Bookmarks are unavailable in local-dev login mode. Sign in with email.",
+                        );
+                      } else {
+                        toast(lang === "ko" ? "북마크 기능은 로그인 후 사용할 수 있습니다." : "Sign in to use bookmarks.");
+                      }
+                    } else {
+                      toast(lang === "ko" ? "북마크 처리 실패" : "Failed to update bookmark");
+                    }
+                    setEngagementLoading(false);
+                    return;
+                  }
+                  setBookmarked(state.bookmarked);
+                  setPost((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          upvoteCount: state.counters.upvotes,
+                          commentCount: state.counters.comments,
+                          bookmarkCount: state.counters.bookmarks,
+                        }
+                      : prev,
+                  );
+                  toast(state.bookmarked ? (lang === "ko" ? "북마크 저장됨" : "Bookmarked") : (lang === "ko" ? "북마크 해제" : "Bookmark removed"));
+                  setEngagementLoading(false);
                 }}
+                disabled={engagementLoading}
               >
                 <Bookmark size={15} fill={bookmarked ? 'currentColor' : 'none'} />
               </button>
@@ -577,8 +783,8 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
               {!post.isReadOnly ? (
                 <div className="flex gap-3 mb-6 pb-6 border-b border-border">
                   <img
-                    src={currentUser.avatar}
-                    alt={currentUser.displayName}
+                    src={composerAvatar}
+                    alt={composerDisplayName}
                     className="w-8 h-8 object-cover border border-border shrink-0"
                   />
                   <div className="flex-1">
@@ -595,11 +801,43 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                       </span>
                       <button
                         className="keyp-btn-primary flex items-center gap-1.5 text-xs px-4 py-2"
-                        onClick={() => {
+                        onClick={async () => {
+                          if (!post || engagementLoading || !commentInput.trim()) return;
+                          setEngagementLoading(true);
+                          const result = await createArticleComment({
+                            articleId: post.id,
+                            content: commentInput,
+                            locale: lang,
+                          });
+                          if (!result.ok) {
+                            if (result.error === "not_authenticated") {
+                              if (isLocalDevUser) {
+                                toast(
+                                  lang === "ko"
+                                    ? "로컬 개발 로그인 상태에서는 댓글을 작성할 수 없습니다. 이메일 로그인으로 전환해 주세요."
+                                    : "Comments are unavailable in local-dev login mode. Sign in with email.",
+                                );
+                              } else {
+                                toast(lang === "ko" ? "댓글 기능은 로그인 후 사용할 수 있습니다." : "Sign in to post comments.");
+                              }
+                            } else {
+                              toast(lang === "ko" ? "댓글 등록 실패" : "Failed to post comment");
+                            }
+                            setEngagementLoading(false);
+                            return;
+                          }
+
+                          const [latestPost, latestComments] = await Promise.all([
+                            getPostById(post.id),
+                            getCommentsForPost(post.id),
+                          ]);
+                          setPost(latestPost);
+                          setPostComments(latestComments);
+                          setCommentInput("");
                           toast(lang === 'ko' ? '댓글이 등록되었습니다' : 'Comment posted');
-                          setCommentInput('');
+                          setEngagementLoading(false);
                         }}
-                        disabled={!commentInput.trim()}
+                        disabled={!commentInput.trim() || engagementLoading}
                       >
                         <Send size={12} />
                         {lang === 'ko' ? '등록' : 'Post'}
@@ -611,8 +849,8 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                 <div className="flex items-center gap-2 mb-6 p-3 bg-muted border border-border">
                   <span className="font-mono text-xs text-muted-foreground">
                     {lang === 'ko'
-                      ? '이 글은 과거 시즌의 아카이브입니다. 댓글 작성이 불가합니다.'
-                      : 'This post is from a past season archive. Comments are disabled.'}
+                      ? '이 글은 읽기 전용입니다. 댓글을 작성할 수 없습니다.'
+                      : 'This post is read-only. Comments are disabled.'}
                   </span>
                 </div>
               )}
@@ -637,8 +875,13 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
 
         {/* ─── AI PANEL ─── */}
         {showAI && (
-          <div className="hidden lg:flex flex-col w-80 shrink-0 sticky top-14 h-[calc(100vh-56px)] border-l border-border">
-            <AIPanel onClose={() => setShowAI(false)} lang={lang} />
+          <div className="hidden lg:flex flex-col w-80 shrink-0 sticky top-[4.5rem] h-[calc(100vh-72px)] border-l border-border">
+            <AIPanel
+              onClose={() => setShowAI(false)}
+              lang={lang}
+              postTitle={lang === "ko" ? post.title : post.titleEn}
+              postContent={lang === "ko" ? post.content : post.contentEn}
+            />
           </div>
         )}
       </div>

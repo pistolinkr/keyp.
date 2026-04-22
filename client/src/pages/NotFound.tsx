@@ -1,6 +1,5 @@
 import { Link } from "wouter";
 import { ArrowLeft, FileX } from "lucide-react";
-import { currentSeason } from "@/lib/mockData";
 
 export default function NotFound() {
   return (
@@ -59,7 +58,7 @@ export default function NotFound() {
 
       <div className="h-px bg-border" />
       <div className="px-6 py-4">
-        <p className="font-mono text-xs text-muted-foreground">Keyp. — Korean Knowledge Community · {currentSeason.label}</p>
+        <p className="font-mono text-xs text-muted-foreground">Keyp. — Korean Knowledge Community</p>
       </div>
     </div>
   );

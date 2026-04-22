@@ -8,32 +8,63 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  Home, Search, PenSquare, User, Archive, Sun, Moon,
-  TrendingUp, BookOpen, Globe, Menu, X, Bell, ChevronRight
+  Home, Search, PenSquare, User, Sun, Moon,
+  TrendingUp, Menu, X, Bell, LogOut
 } from "lucide-react";
-import { currentUser, currentSeason, trendingTopics, categories } from "@/lib/mockData";
+import { PLACEHOLDER_AVATAR, trendingTopics } from "@/lib/mockData";
+import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
+import { NavbarScrollBlur } from "@/components/layout/NavbarScrollBlur";
 import { toast } from "sonner";
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-const navItems = [
-  { href: "/feed", icon: Home, label: "피드", labelEn: "Feed" },
-  { href: "/search", icon: Search, label: "검색", labelEn: "Search" },
-  { href: "/write", icon: PenSquare, label: "글쓰기", labelEn: "Write" },
-  { href: `/profile/${currentUser.username}`, icon: User, label: "프로필", labelEn: "Profile" },
-  { href: `/season/${currentSeason.id}`, icon: Archive, label: "시즌 아카이브", labelEn: "Season Archive" },
-];
-
 export default function MainLayout({ children }: MainLayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang } = useLanguage();
+  const { user, profileUsername, signOut } = useAuth();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktopFeedLayout, setIsDesktopFeedLayout] = useState(false);
   const shouldHideTrendingNav = location.startsWith("/feed") && isDesktopFeedLayout;
+  const profileHref = `/profile/${profileUsername}`;
+  const [navCategories, setNavCategories] = useState(() =>
+    deriveCategoriesFromPosts([]),
+  );
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const postList = await getPublishedPosts();
+      if (cancelled) return;
+      setNavCategories(deriveCategoriesFromPosts(postList));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const navItems = [
+    { href: "/feed", icon: Home, label: "피드", labelEn: "Feed" },
+    { href: "/search", icon: Search, label: "검색", labelEn: "Search" },
+    { href: "/write", icon: PenSquare, label: "글쓰기", labelEn: "Write" },
+    { href: profileHref, icon: User, label: "프로필", labelEn: "Profile" },
+  ];
+  const sidebarLevel =
+    typeof user?.userMetadata?.level === "number" ? user.userMetadata.level : 1;
+  const sidebarXp =
+    typeof user?.userMetadata?.xp === "number" ? user.userMetadata.xp : 0;
+  const userAvatar =
+    typeof user?.userMetadata?.avatar_url === "string"
+      ? user.userMetadata.avatar_url
+      : PLACEHOLDER_AVATAR;
+  const userDisplayName =
+    (typeof user?.userMetadata?.full_name === "string" && user.userMetadata.full_name) ||
+    (typeof user?.userMetadata?.name === "string" && user.userMetadata.name) ||
+    user?.email ||
+    (lang === "ko" ? "게스트" : "Guest");
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1280px)");
@@ -69,7 +100,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* ─── TOP HEADER ─── */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border bg-background flex items-center px-4 gap-4">
+      <header className="fixed top-0 left-0 right-0 z-50 h-[4.5rem] border-b border-border keyp-navbar flex items-center px-4 gap-4">
         {/* Mobile menu toggle */}
         <button
           className="lg:hidden p-1.5 hover:bg-accent transition-colors"
@@ -88,13 +119,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
             />
           </div>
         </Link>
-
-        {/* Season badge */}
-        <div className="hidden md:flex items-center gap-1.5 ml-1">
-          <span className="keyp-season-badge">
-            {currentSeason.label} · EP.{currentSeason.episodeCount}
-          </span>
-        </div>
 
         <div className="flex-1" />
 
@@ -146,8 +170,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </button>
 
       </header>
+      <NavbarScrollBlur />
 
-      <div className="flex pt-14 min-h-screen">
+      <div className="flex pt-[4.5rem] min-h-screen">
         {/* ─── LEFT SIDEBAR ─── */}
         {/* Mobile overlay */}
         {sidebarOpen && (
@@ -159,7 +184,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
         <aside
           className={`
-            fixed top-14 left-0 bottom-0 z-40 w-64 border-r border-border bg-sidebar
+            fixed top-[4.5rem] left-0 bottom-0 z-40 w-64 border-r border-border bg-sidebar
             flex flex-col overflow-y-auto
             transition-transform duration-200 ease-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -187,7 +212,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <div className="mb-4">
               <p className="keyp-section-label px-3 mb-2">CATEGORIES</p>
               <div className="space-y-0.5">
-                {categories.slice(0, 6).map((cat) => (
+                {navCategories.slice(0, 6).map((cat) => (
                   <button
                     key={cat.id}
                     className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent transition-colors cursor-pointer group text-left"
@@ -233,14 +258,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Sidebar footer */}
           <div className="p-3 border-t border-border flex items-stretch gap-3">
-            <Link href={`/profile/${currentUser.username}`}>
+            <Link href={profileHref}>
               <button
-                className="h-full aspect-square w-auto max-h-12 shrink-0 overflow-hidden border border-border hover:border-primary transition-colors"
+                className="w-12 h-12 shrink-0 overflow-hidden border border-border hover:border-primary transition-colors"
                 title={lang === "ko" ? "프로필 보기" : "View profile"}
               >
                 <img
-                  src={currentUser.avatar}
-                  alt={lang === "ko" ? currentUser.displayName : currentUser.displayNameEn}
+                  src={userAvatar}
+                  alt={userDisplayName}
                   className="w-full h-full object-cover"
                 />
               </button>
@@ -250,25 +275,39 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-xs font-medium truncate">
-                  {lang === "ko" ? currentUser.displayName : currentUser.displayNameEn}
+                  {userDisplayName}
                 </span>
                 <span className="font-mono text-xs text-primary">
-                  {lang === "ko" ? `Lv.${currentUser.level}` : `Lv.${currentUser.level}`}
+                  {lang === "ko" ? `Lv.${sidebarLevel}` : `Lv.${sidebarLevel}`}
                 </span>
               </div>
               <div className="w-full h-1 bg-muted overflow-hidden">
                 <div
                   className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${(currentUser.xp % 1000) / 10}%` }}
+                  style={{ width: `${(sidebarXp % 1000) / 10}%` }}
                 />
               </div>
               <div className="flex justify-between mt-1">
                 <span className="font-mono text-xs text-muted-foreground">
-                  {lang === "ko" ? `${currentUser.xp} XP` : `${currentUser.xp} XP`}
+                  {lang === "ko" ? `${sidebarXp} XP` : `${sidebarXp} XP`}
                 </span>
-                <span className="font-mono text-xs text-muted-foreground">{currentSeason.label}</span>
+                <span className="font-mono text-xs text-muted-foreground">Keyp.</span>
               </div>
             </div>
+            <button
+              className="w-10 h-10 shrink-0 border border-border hover:border-primary transition-colors flex items-center justify-center"
+              onClick={async () => {
+                try {
+                  await signOut();
+                  setLocation("/auth/signin");
+                } catch {
+                  toast.error(lang === "ko" ? "로그아웃 실패" : "Failed to sign out");
+                }
+              }}
+              title={lang === "ko" ? "로그아웃" : "Sign out"}
+            >
+              <LogOut size={14} />
+            </button>
           </div>
         </aside>
 

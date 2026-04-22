@@ -1,5 +1,5 @@
 import { AlertTriangle, Home, RotateCcw } from "lucide-react";
-import { Component, ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -19,6 +19,10 @@ class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[ErrorBoundary]", error.message, error.stack, info.componentStack);
   }
 
   render() {

@@ -4,12 +4,20 @@
  * Layout: Post list (no cards, divider-only) + Right sidebar context panel
  * Features: Category filter, Season filter, Sort options
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { posts, categories, currentSeason, seasons, trendingTopics, users } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { trendingTopics } from "@/lib/mockData";
 import type { Post } from "@/lib/mockData";
+import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
+import {
+  getEngagementState,
+  toggleArticleBookmark,
+  toggleArticleUpvote,
+} from "@/lib/engagementApi";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   ArrowUp, MessageSquare, Bookmark, Clock, Eye,
   ChevronRight, Filter, SlidersHorizontal, Star
@@ -64,11 +72,18 @@ function PostItem({
   post,
   lang,
   onOpenPost,
+  onCountersUpdate,
 }: {
   post: Post;
   lang: 'ko' | 'en';
   onOpenPost: (postId: string) => void;
+  onCountersUpdate: (
+    postId: string,
+    counters: { upvotes: number; comments: number; bookmarks: number },
+  ) => void;
 }) {
+  const { user } = useAuth();
+  const isLocalDevUser = user?.isLocalDev === true;
   const [upvoted, setUpvoted] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const diff = DIFFICULTY_LABELS[post.difficulty];
@@ -80,6 +95,20 @@ function PostItem({
     onOpenPost(post.id);
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const state = await getEngagementState(post.id);
+      if (cancelled || !state.ok) return;
+      setUpvoted(state.upvoted);
+      setBookmarked(state.bookmarked);
+      onCountersUpdate(post.id, state.counters);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [post.id, onCountersUpdate]);
+
   return (
     <article className="keyp-post-item" onClick={handleOpenBySectionClick}>
       <div className="flex gap-4">
@@ -87,10 +116,30 @@ function PostItem({
         <div className="flex flex-col items-center gap-1 pt-0.5 min-w-[36px]">
           <button
             className={`flex flex-col items-center gap-0.5 p-1 hover:text-primary transition-colors ${upvoted ? 'text-primary' : 'text-muted-foreground'}`}
-            onClick={() => setUpvoted(!upvoted)}
+            onClick={async () => {
+              const state = await toggleArticleUpvote(post.id);
+              if (!state.ok) {
+                if (state.error === "not_authenticated") {
+                  if (isLocalDevUser) {
+                    toast(
+                      lang === "ko"
+                        ? "로컬 개발 로그인 상태에서는 추천 기능을 사용할 수 없습니다. 이메일 로그인으로 전환해 주세요."
+                        : "Upvotes are unavailable in local-dev login mode. Sign in with email.",
+                    );
+                  } else {
+                    toast(lang === "ko" ? "추천 기능은 로그인 후 사용할 수 있습니다." : "Sign in to use upvotes.");
+                  }
+                } else {
+                  toast(lang === "ko" ? "추천 처리 실패" : "Failed to update upvote");
+                }
+                return;
+              }
+              setUpvoted(state.upvoted);
+              onCountersUpdate(post.id, state.counters);
+            }}
           >
             <ArrowUp size={16} strokeWidth={upvoted ? 2.5 : 2} />
-            <span className="font-mono text-xs">{post.upvoteCount + (upvoted ? 1 : 0)}</span>
+            <span className="font-mono text-xs">{post.upvoteCount}</span>
           </button>
         </div>
 
@@ -98,9 +147,6 @@ function PostItem({
         <div className="flex-1 min-w-0">
           {/* Meta row */}
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="keyp-season-badge text-xs">
-              {currentSeason.label} · EP.{post.episode}
-            </span>
             <span className="font-mono text-xs text-muted-foreground">
               {lang === 'ko' ? post.category : post.categoryEn}
             </span>
@@ -179,9 +225,27 @@ function PostItem({
             {/* Bookmark */}
             <button
               className={`p-1 transition-colors ${bookmarked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={() => {
-                setBookmarked(!bookmarked);
-                toast(bookmarked ? '북마크 해제' : '북마크 저장됨');
+              onClick={async () => {
+                const state = await toggleArticleBookmark(post.id);
+                if (!state.ok) {
+                  if (state.error === "not_authenticated") {
+                    if (isLocalDevUser) {
+                      toast(
+                        lang === "ko"
+                          ? "로컬 개발 로그인 상태에서는 북마크를 사용할 수 없습니다. 이메일 로그인으로 전환해 주세요."
+                          : "Bookmarks are unavailable in local-dev login mode. Sign in with email.",
+                      );
+                    } else {
+                      toast(lang === "ko" ? "북마크 기능은 로그인 후 사용할 수 있습니다." : "Sign in to use bookmarks.");
+                    }
+                  } else {
+                    toast(lang === "ko" ? "북마크 처리 실패" : "Failed to update bookmark");
+                  }
+                  return;
+                }
+                setBookmarked(state.bookmarked);
+                onCountersUpdate(post.id, state.counters);
+                toast(state.bookmarked ? (lang === "ko" ? "북마크 저장됨" : "Bookmarked") : (lang === "ko" ? "북마크 해제" : "Bookmark removed"));
               }}
             >
               <Bookmark size={14} fill={bookmarked ? 'currentColor' : 'none'} />
@@ -200,11 +264,31 @@ function PostItem({
 
 export default function FeedPage() {
   const { lang } = useLanguage();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [categories, setCategories] = useState(() => deriveCategoriesFromPosts([]));
+  const [feedLoading, setFeedLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'latest' | 'trending' | 'top'>('latest');
-  const [activeSeason, setActiveSeason] = useState<string>(currentSeason.id);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setFeedLoading(true);
+      try {
+        const postList = await getPublishedPosts();
+        if (cancelled) return;
+        setPosts(postList);
+        setCategories(deriveCategoriesFromPosts(postList));
+      } finally {
+        if (!cancelled) setFeedLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1280px)");
@@ -237,12 +321,58 @@ export default function FeedPage() {
     return () => document.body.classList.remove("feed-scrollbar-neutral");
   }, []);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const channel = supabase
+      .channel("feed-engagement")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "articles" },
+        ({ new: row }: { new: any }) => {
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === row.id
+                ? {
+                    ...p,
+                    upvoteCount: row.upvote_count ?? p.upvoteCount,
+                    commentCount: row.comment_count ?? p.commentCount,
+                    bookmarkCount: row.bookmark_count ?? p.bookmarkCount,
+                    updatedAt: row.updated_at ?? p.updatedAt,
+                  }
+                : p,
+            ),
+          );
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleCountersUpdate = useCallback((
+    postId: string,
+    counters: { upvotes: number; comments: number; bookmarks: number },
+  ) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              upvoteCount: counters.upvotes,
+              commentCount: counters.comments,
+              bookmarkCount: counters.bookmarks,
+            }
+          : post,
+      ),
+    );
+  }, []);
+
   const filteredPosts = posts.filter(p => {
     if (activeCategory !== 'all') {
       const cat = categories.find(c => c.id === activeCategory);
       if (cat && p.category !== cat.label) return false;
     }
-    if (activeSeason !== 'all' && p.seasonId !== activeSeason) return false;
     return true;
   });
 
@@ -273,7 +403,7 @@ export default function FeedPage() {
       {/* ─── MAIN FEED ─── */}
       <div className="relative flex-1 min-w-0 xl:before:content-[''] xl:before:absolute xl:before:right-0 xl:before:top-0 xl:before:h-full xl:before:w-[0.5px] xl:before:bg-border">
         {/* Feed header */}
-        <div className="sticky top-14 z-30 bg-background border-b border-border">
+        <div className="sticky top-[4.5rem] z-30 bg-background border-b border-border">
           {/* Category tabs */}
           <div className="flex items-center gap-0 overflow-x-auto px-6 pt-4 pb-0">
             <button
@@ -329,26 +459,6 @@ export default function FeedPage() {
 
             <div className="flex-1" />
 
-            {/* Season filter */}
-            <div className="flex items-center gap-1">
-              {[
-                { id: 'all', label: lang === 'ko' ? '전체 시즌' : 'All Seasons' },
-                ...seasons.slice(0, 2).map((s) => ({ id: s.id, label: s.label })),
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  className={`px-2.5 py-1 font-mono text-xs border transition-colors ${
-                    activeSeason === s.id
-                      ? 'border-primary text-primary bg-primary/5'
-                      : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-                  }`}
-                  onClick={() => setActiveSeason(s.id)}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-
             <button
               className="p-1.5 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
               onClick={() => toast('필터 기능 — 준비 중입니다')}
@@ -360,7 +470,13 @@ export default function FeedPage() {
 
         {/* Post list */}
         <div className="px-6">
-          {sortedPosts.length === 0 ? (
+          {feedLoading ? (
+            <div className="py-20 text-center">
+              <p className="text-muted-foreground font-mono text-sm">
+                {lang === "ko" ? "불러오는 중…" : "Loading…"}
+              </p>
+            </div>
+          ) : sortedPosts.length === 0 ? (
             <div className="py-20 text-center">
               <p className="text-muted-foreground">{lang === 'ko' ? '게시글이 없습니다' : 'No posts found'}</p>
             </div>
@@ -375,6 +491,7 @@ export default function FeedPage() {
                   post={post}
                   lang={lang}
                   onOpenPost={(postId) => setLocation(`/post/${postId}`)}
+                  onCountersUpdate={handleCountersUpdate}
                 />
               </div>
             ))
@@ -384,7 +501,7 @@ export default function FeedPage() {
 
       {/* ─── RIGHT CONTEXT PANEL ─── */}
       <aside
-        className={`flex flex-col shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-hidden transition-all duration-300 ease-out ${
+        className={`flex flex-col shrink-0 sticky top-[4.5rem] h-[calc(100vh-72px)] overflow-hidden transition-all duration-300 ease-out ${
           showRightPanel ? "w-80 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-8 pointer-events-none"
         }`}
       >
@@ -393,29 +510,6 @@ export default function FeedPage() {
             showRightPanel ? "opacity-100 translate-x-0 blur-0" : "opacity-0 translate-x-6 blur-[2px]"
           }`}
         >
-          {/* Season status */}
-          <div>
-            <p className="keyp-section-label mb-3">CURRENT SEASON</p>
-            <div className="border border-border p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-black text-2xl" style={{ fontFamily: 'Noto Sans KR', letterSpacing: '-0.04em' }}>
-                  {currentSeason.label}
-                </span>
-                <span className="keyp-season-badge">LIVE</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="font-bold text-lg">{currentSeason.episodeCount}</div>
-                  <div className="font-mono text-xs text-muted-foreground">EPISODES</div>
-                </div>
-                <div>
-                  <div className="font-bold text-lg">1.2K</div>
-                  <div className="font-mono text-xs text-muted-foreground">WRITERS</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Trending topics */}
           <div>
             <p className="keyp-section-label mb-3">TRENDING NOW</p>
@@ -434,28 +528,6 @@ export default function FeedPage() {
             </div>
           </div>
 
-          {/* Top contributors */}
-          <div>
-            <p className="keyp-section-label mb-3">TOP CONTRIBUTORS</p>
-            <div className="space-y-0">
-              {users.slice(0, 4).map((user, i) => (
-                <Link key={user.id} href={`/profile/${user.username}`}>
-                  <div className="flex items-center gap-3 py-2.5 border-b border-border hover:bg-accent/50 transition-colors cursor-pointer group px-1">
-                    <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
-                    <img src={user.avatar} alt={user.displayName} className="w-7 h-7 object-cover border border-border" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                        {lang === 'ko' ? user.displayName : user.displayNameEn}
-                      </div>
-                      <div className="font-mono text-xs text-muted-foreground">Lv.{user.level}</div>
-                    </div>
-                    <ChevronRight size={13} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
           {/* Write CTA */}
           <div className="border border-border p-4">
             <p className="text-sm font-medium mb-2">
@@ -463,8 +535,8 @@ export default function FeedPage() {
             </p>
             <p className="text-xs text-muted-foreground mb-3">
               {lang === 'ko'
-                ? `${currentSeason.label} 시즌에 글을 작성하고 커뮤니티와 함께 성장하세요.`
-                : `Write for ${currentSeason.label} season and grow with the community.`}
+                ? '글을 작성하고 커뮤니티와 함께 성장하세요.'
+                : 'Write posts and grow with the community.'}
             </p>
             <Link href="/write">
               <button className="keyp-btn-primary w-full flex items-center justify-center gap-2 text-sm py-2.5">

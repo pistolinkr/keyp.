@@ -1,0 +1,199 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 123e40d63bca06f42e7873261864227330926149..cae849b1baef85d9b9f3bbdb0bbdeba0c7043e4f 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -485,10 +485,8 @@ function dragHandler(event, editor, nestedOptions, dragContext) {
+     return;
+   }
+   const { tr } = view.state;
+-  const wrapper = document.createElement("div");
+   const from = ranges[0].$from.pos;
+   const to = ranges[ranges.length - 1].$to.pos;
+-  wrapper.setAttribute("dir", getDraggedBlockDir(view, from));
+   const isNestedDrag = (nestedOptions == null ? void 0 : nestedOptions.enabled) && (dragContext == null ? void 0 : dragContext.node);
+   let slice;
+   let selection;
+@@ -499,25 +497,25 @@ function dragHandler(event, editor, nestedOptions, dragContext) {
+     selection = import_extension_node_range.NodeRangeSelection.create(view.state.doc, from, to);
+     slice = selection.content();
+   }
+-  ranges.forEach((range) => {
+-    const element = view.nodeDOM(range.$from.pos);
+-    const clonedElement = cloneElement(element);
+-    wrapper.append(clonedElement);
+-  });
+-  wrapper.style.position = "absolute";
+-  wrapper.style.top = "-10000px";
+-  document.body.append(wrapper);
+   event.dataTransfer.clearData();
+-  const wrapperRect = wrapper.getBoundingClientRect();
+-  const dragImageX = event.clientX - wrapperRect.left;
+-  event.dataTransfer.setDragImage(wrapper, Math.max(0, Math.min(dragImageX, wrapperRect.width)), 0);
++  const dragGhost = document.createElement("div");
++  dragGhost.setAttribute("dir", getDraggedBlockDir(view, from));
++  dragGhost.style.position = "fixed";
++  dragGhost.style.top = "-9999px";
++  dragGhost.style.left = "-9999px";
++  dragGhost.style.width = "1px";
++  dragGhost.style.height = "1px";
++  dragGhost.style.opacity = "0";
++  dragGhost.style.pointerEvents = "none";
++  document.body.append(dragGhost);
++  event.dataTransfer.setDragImage(dragGhost, 0, 0);
+   let cleanedUp = false;
+   const cleanupDragPreview = () => {
+     if (cleanedUp) {
+       return;
+     }
+     cleanedUp = true;
+-    removeNode(wrapper);
++    removeNode(dragGhost);
+     document.removeEventListener("drop", cleanupDragPreview);
+     document.removeEventListener("dragend", cleanupDragPreview);
+   };
+@@ -525,6 +523,7 @@ function dragHandler(event, editor, nestedOptions, dragContext) {
+   view.dragging = { slice, move: true, node: nodeSelection };
+   tr.setSelection(selection);
+   view.dispatch(tr);
++  event.dataTransfer.setDragImage(dragGhost, 0, 0);
+   document.addEventListener("drop", cleanupDragPreview);
+   document.addEventListener("dragend", cleanupDragPreview);
+ }
+diff --git a/dist/index.js b/dist/index.js
+index d50c956280b83ae3e0ad2cea93a6caf5af073ac3..3f17d75c293c69154b381512685e4283711d8845 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -457,10 +457,8 @@ function dragHandler(event, editor, nestedOptions, dragContext) {
+     return;
+   }
+   const { tr } = view.state;
+-  const wrapper = document.createElement("div");
+   const from = ranges[0].$from.pos;
+   const to = ranges[ranges.length - 1].$to.pos;
+-  wrapper.setAttribute("dir", getDraggedBlockDir(view, from));
+   const isNestedDrag = (nestedOptions == null ? void 0 : nestedOptions.enabled) && (dragContext == null ? void 0 : dragContext.node);
+   let slice;
+   let selection;
+@@ -471,25 +469,25 @@ function dragHandler(event, editor, nestedOptions, dragContext) {
+     selection = NodeRangeSelection.create(view.state.doc, from, to);
+     slice = selection.content();
+   }
+-  ranges.forEach((range) => {
+-    const element = view.nodeDOM(range.$from.pos);
+-    const clonedElement = cloneElement(element);
+-    wrapper.append(clonedElement);
+-  });
+-  wrapper.style.position = "absolute";
+-  wrapper.style.top = "-10000px";
+-  document.body.append(wrapper);
+   event.dataTransfer.clearData();
+-  const wrapperRect = wrapper.getBoundingClientRect();
+-  const dragImageX = event.clientX - wrapperRect.left;
+-  event.dataTransfer.setDragImage(wrapper, Math.max(0, Math.min(dragImageX, wrapperRect.width)), 0);
++  const dragGhost = document.createElement("div");
++  dragGhost.setAttribute("dir", getDraggedBlockDir(view, from));
++  dragGhost.style.position = "fixed";
++  dragGhost.style.top = "-9999px";
++  dragGhost.style.left = "-9999px";
++  dragGhost.style.width = "1px";
++  dragGhost.style.height = "1px";
++  dragGhost.style.opacity = "0";
++  dragGhost.style.pointerEvents = "none";
++  document.body.append(dragGhost);
++  event.dataTransfer.setDragImage(dragGhost, 0, 0);
+   let cleanedUp = false;
+   const cleanupDragPreview = () => {
+     if (cleanedUp) {
+       return;
+     }
+     cleanedUp = true;
+-    removeNode(wrapper);
++    removeNode(dragGhost);
+     document.removeEventListener("drop", cleanupDragPreview);
+     document.removeEventListener("dragend", cleanupDragPreview);
+   };
+@@ -497,6 +495,7 @@ function dragHandler(event, editor, nestedOptions, dragContext) {
+   view.dragging = { slice, move: true, node: nodeSelection };
+   tr.setSelection(selection);
+   view.dispatch(tr);
++  event.dataTransfer.setDragImage(dragGhost, 0, 0);
+   document.addEventListener("drop", cleanupDragPreview);
+   document.addEventListener("dragend", cleanupDragPreview);
+ }
+diff --git a/src/helpers/dragHandler.ts b/src/helpers/dragHandler.ts
+index a3400392890afbc50ba368a96c0c7b541468c3ba..c4bb3b1d1d39e10761a6ee7ed484ad5d682d9f1d 100644
+--- a/src/helpers/dragHandler.ts
++++ b/src/helpers/dragHandler.ts
+@@ -4,7 +4,6 @@ import type { Node } from '@tiptap/pm/model'
+ import { type SelectionRange, NodeSelection } from '@tiptap/pm/state'
+ 
+ import type { NormalizedNestedOptions } from '../types/options.js'
+-import { cloneElement } from './cloneElement.js'
+ import { findElementNextToCoords } from './findNextElementFromCursor.js'
+ import { getDraggedBlockDir } from './getDraggedBlockDir.js'
+ import { removeNode } from './removeNode.js'
+@@ -89,13 +88,10 @@ export function dragHandler(
+   }
+ 
+   const { tr } = view.state
+-  const wrapper = document.createElement('div')
+ 
+   const from = ranges[0].$from.pos
+   const to = ranges[ranges.length - 1].$to.pos
+ 
+-  wrapper.setAttribute('dir', getDraggedBlockDir(view, from))
+-
+   // For nested mode, create slice directly to avoid NodeRangeSelection expanding to parent
+   const isNestedDrag = nestedOptions?.enabled && dragContext?.node
+ 
+@@ -114,21 +110,18 @@ export function dragHandler(
+     slice = selection.content()
+   }
+ 
+-  ranges.forEach(range => {
+-    const element = view.nodeDOM(range.$from.pos) as HTMLElement
+-    const clonedElement = cloneElement(element)
+-
+-    wrapper.append(clonedElement)
+-  })
+-
+-  wrapper.style.position = 'absolute'
+-  wrapper.style.top = '-10000px'
+-  document.body.append(wrapper)
+-
+   event.dataTransfer.clearData()
+-  const wrapperRect = wrapper.getBoundingClientRect()
+-  const dragImageX = event.clientX - wrapperRect.left
+-  event.dataTransfer.setDragImage(wrapper, Math.max(0, Math.min(dragImageX, wrapperRect.width)), 0)
++  const dragGhost = document.createElement('div')
++  dragGhost.setAttribute('dir', getDraggedBlockDir(view, from))
++  dragGhost.style.position = 'fixed'
++  dragGhost.style.top = '-9999px'
++  dragGhost.style.left = '-9999px'
++  dragGhost.style.width = '1px'
++  dragGhost.style.height = '1px'
++  dragGhost.style.opacity = '0'
++  dragGhost.style.pointerEvents = 'none'
++  document.body.append(dragGhost)
++  event.dataTransfer.setDragImage(dragGhost, 0, 0)
+ 
+   let cleanedUp = false
+ 
+@@ -138,7 +131,7 @@ export function dragHandler(
+     }
+ 
+     cleanedUp = true
+-    removeNode(wrapper)
++    removeNode(dragGhost)
+     document.removeEventListener('drop', cleanupDragPreview)
+     document.removeEventListener('dragend', cleanupDragPreview)
+   }
+@@ -158,6 +151,8 @@ export function dragHandler(
+   tr.setSelection(selection)
+ 
+   view.dispatch(tr)
++  // Chrome can sometimes replace drag image after selection changes, so force it once more.
++  event.dataTransfer.setDragImage(dragGhost, 0, 0)
+ 
+   // Clean up the drag preview whether the drag results in a valid drop or not.
+   document.addEventListener('drop', cleanupDragPreview)

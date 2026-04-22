@@ -3,11 +3,13 @@
  * Design: Sharp Editorial Intelligence
  * Features: Full-text search, category filter, user search
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { posts, users, categories, trendingTopics } from "@/lib/mockData";
-import { Search, X, Clock, Eye, ArrowUp, User, FileText, TrendingUp } from "lucide-react";
+import { trendingTopics } from "@/lib/mockData";
+import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
+import type { Post, User } from "@/lib/mockData";
+import { Search, X, Clock, Eye, ArrowUp, User as UserIcon, FileText, TrendingUp } from "lucide-react";
 
 interface SearchPageProps {
   query?: string;
@@ -18,6 +20,31 @@ export default function SearchPage({ query: initialQuery = '' }: SearchPageProps
   const [query, setQuery] = useState(initialQuery);
   const [activeType, setActiveType] = useState<'all' | 'posts' | 'users'>('all');
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [categories, setCategories] = useState(() => deriveCategoriesFromPosts([]));
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const list = await getPublishedPosts();
+      if (cancelled) return;
+      setPosts(list);
+      setCategories(deriveCategoriesFromPosts(list));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const authorsFromPosts = useMemo(() => {
+    const byUsername = new Map<string, User>();
+    for (const p of posts) {
+      if (!byUsername.has(p.author.username)) {
+        byUsername.set(p.author.username, p.author);
+      }
+    }
+    return Array.from(byUsername.values());
+  }, [posts]);
 
   // Keep search input in sync with URL query, even on same-path query changes.
   useEffect(() => {
@@ -46,13 +73,15 @@ export default function SearchPage({ query: initialQuery = '' }: SearchPageProps
     return cat ? p.category === cat.label : true;
   });
 
-  const filteredUsers = users.filter(u => {
+  const filteredUsers = authorsFromPosts.filter((u) => {
     if (!query) return true;
     const q = query.toLowerCase();
-    return u.displayName.toLowerCase().includes(q) ||
+    return (
+      u.displayName.toLowerCase().includes(q) ||
       u.displayNameEn.toLowerCase().includes(q) ||
       u.username.toLowerCase().includes(q) ||
-      u.tags.some(t => t.toLowerCase().includes(q));
+      u.tags.some((t) => t.toLowerCase().includes(q))
+    );
   });
 
   return (
@@ -201,7 +230,6 @@ export default function SearchPage({ query: initialQuery = '' }: SearchPageProps
                       style={{ animationDelay: `${i * 0.04}s`, animationFillMode: 'forwards' }}
                     >
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className="keyp-season-badge text-xs">{post.seasonId.toUpperCase()}</span>
                         <span className="font-mono text-xs text-muted-foreground">
                           {lang === 'ko' ? post.category : post.categoryEn}
                         </span>
@@ -241,7 +269,7 @@ export default function SearchPage({ query: initialQuery = '' }: SearchPageProps
             <div>
               {activeType === 'all' && (
                 <div className="flex items-center gap-2 mb-3">
-                  <User size={14} className="text-muted-foreground" />
+                  <UserIcon size={14} className="text-muted-foreground" />
                   <p className="keyp-section-label">USERS ({filteredUsers.length})</p>
                 </div>
               )}
