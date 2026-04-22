@@ -11,6 +11,27 @@ export function getAuthCaptchaProvider(): AuthCaptchaProvider {
   return raw === "hcaptcha" ? "hcaptcha" : "turnstile";
 }
 
+function isLocalHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function isLocalRuntime(): boolean {
+  if (typeof window === "undefined") return false;
+  return isLocalHostname(window.location.hostname);
+}
+
+function shouldEnableCaptchaOnLocalhost(): boolean {
+  const raw = (import.meta.env.VITE_CAPTCHA_ENABLE_LOCAL as string | undefined)?.trim().toLowerCase();
+  return raw === "true" || raw === "1" || raw === "yes";
+}
+
 export function isAuthCaptchaConfigured(): boolean {
-  return getAuthCaptchaSiteKey() !== null;
+  const hasSiteKey = getAuthCaptchaSiteKey() !== null;
+  if (!hasSiteKey) return false;
+
+  if (isLocalRuntime() && !shouldEnableCaptchaOnLocalhost()) {
+    return false;
+  }
+
+  return true;
 }

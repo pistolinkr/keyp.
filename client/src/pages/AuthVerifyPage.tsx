@@ -120,11 +120,27 @@ export default function AuthVerifyPage() {
       });
       if (error) {
         bumpCaptchaReset();
-        toast.error(
-          lang === "ko"
-            ? "매직 링크 발송에 실패했습니다. 보안 확인을 다시 한 뒤 시도해 주세요."
-            : "Failed to send magic link. Complete the security check again and retry.",
-        );
+        const raw = error.message?.trim() ?? "";
+        const normalized = raw.toLowerCase();
+        if (normalized.includes("captcha")) {
+          toast.error(
+            lang === "ko"
+              ? "CAPTCHA 검증에 실패했습니다. 배포 환경변수(VITE_CAPTCHA_PROVIDER, VITE_CAPTCHA_SITE_KEY)와 Supabase Bot Protection 설정을 확인해 주세요."
+              : "CAPTCHA verification failed. Check deployment env vars (VITE_CAPTCHA_PROVIDER, VITE_CAPTCHA_SITE_KEY) and Supabase Bot Protection settings.",
+          );
+        } else if (normalized.includes("redirect") && normalized.includes("allow")) {
+          toast.error(
+            lang === "ko"
+              ? "리디렉션 URL이 허용되지 않았습니다. Supabase Auth URL 설정에 현재 도메인의 /auth/callback URL을 추가해 주세요."
+              : "Redirect URL is not allowed. Add this domain's /auth/callback URL in Supabase Auth URL settings.",
+          );
+        } else {
+          toast.error(
+            lang === "ko"
+              ? `매직 링크 발송 실패: ${raw || "서버 응답 오류"}`
+              : `Failed to send magic link: ${raw || "Server response error"}`,
+          );
+        }
         return;
       }
 
