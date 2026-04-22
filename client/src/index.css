@@ -547,9 +547,14 @@
 
   /* Fixed top navbar — background tint 1% + frosted glass */
   .keyp-navbar {
+    background: rgba(255, 255, 255, 0.08);
     background: color-mix(in oklch, var(--background) 10%, transparent);
     backdrop-filter: blur(3.2px);
     -webkit-backdrop-filter: blur(3.2px);
+  }
+
+  .dark .keyp-navbar {
+    background: rgba(0, 0, 0, 0.18);
   }
 
   /* Blur fade under navbar — scroll content reads as frosted in this band (below sidebar z-40) */
@@ -561,12 +566,15 @@
     height: 4.5rem;
     z-index: 35;
     pointer-events: none;
+    background: rgba(255, 255, 255, 0.01); /* Helps Chrome keep a compositing layer for backdrop-filter. */
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
-    mask-image: linear-gradient(to top, #000 0%, transparent 100%, black calc(100%-60px));
-    -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%, black calc(100%-60px));
-    mask-image: linear-gradient(to bottom, #000 0%, transparent 1%, black);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 1%, black);
+    mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.98) 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.98) 70%, transparent 100%);
+  }
+
+  .dark .keyp-navbar-blur-mask {
+    background: rgba(0, 0, 0, 0.01);
   }
   /* Landing header control alignment */
   .keyp-season-badge-header {
