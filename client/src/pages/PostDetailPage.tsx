@@ -13,6 +13,7 @@ import type { Comment, Post } from "@/lib/mockData";
 import { getPostById, getCommentsForPost, incrementArticleViewCount } from "@/lib/contentApi";
 import {
   createArticleComment,
+  deleteArticleComment,
   getEngagementState,
   subscribeArticleEngagement,
   toggleArticleBookmark,
@@ -24,6 +25,7 @@ import {
   ArrowUp, MessageSquare, Bookmark, Clock, Eye, Share2,
   ChevronLeft, Sparkles, X, Send, ArrowDown, ChevronRight,
   Star, CornerDownRight, Globe
+  , Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,14 +44,27 @@ function useCommentComposerIdentity() {
   return { avatar, displayName };
 }
 
+/** Comments store text in only one locale column; fall back so the other party's message is visible. */
+function commentDisplayBody(comment: Comment, lang: "ko" | "en"): string {
+  const primary = lang === "ko" ? comment.content : comment.contentEn;
+  const secondary = lang === "ko" ? comment.contentEn : comment.content;
+  return (primary?.trim() || secondary?.trim() || "").trim();
+}
+
 // ─── COMMENT COMPONENT ───
 function CommentItem({
   comment,
   lang,
+  currentUserId,
+  canDeleteComment,
+  onDeleteComment,
   depth = 0,
 }: {
   comment: Comment;
   lang: 'ko' | 'en';
+  currentUserId: string | null;
+  canDeleteComment: (comment: Comment) => boolean;
+  onDeleteComment: (commentId: string) => Promise<void>;
   depth?: number;
 }) {
   const { avatar: composerAvatar, displayName: composerName } = useCommentComposerIdentity();
@@ -120,7 +135,7 @@ function CommentItem({
         {!collapsed && (
           <div className="ml-8">
             <p className="text-sm leading-relaxed text-foreground mb-2">
-              {lang === 'ko' ? comment.content : comment.contentEn}
+              {commentDisplayBody(comment, lang)}
             </p>
 
             {/* Comment actions */}
@@ -141,6 +156,15 @@ function CommentItem({
                 <CornerDownRight size={12} />
                 {lang === 'ko' ? '답글' : 'Reply'}
               </button>
+              {currentUserId && canDeleteComment(comment) && (
+                <button
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  onClick={() => void onDeleteComment(comment.id)}
+                >
+                  <Trash2 size={12} />
+                  {lang === "ko" ? "삭제" : "Delete"}
+                </button>
+              )}
               {comment.isReadOnly && (
                 <span className="font-mono text-xs text-muted-foreground border border-border px-1.5 py-0.5">
                   READ-ONLY
@@ -182,7 +206,15 @@ function CommentItem({
       {!collapsed && comment.replies && comment.replies.length > 0 && (
         <div className="ml-5">
           {comment.replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} lang={lang} depth={depth + 1} />
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              lang={lang}
+              currentUserId={currentUserId}
+              canDeleteComment={canDeleteComment}
+              onDeleteComment={onDeleteComment}
+              depth={depth + 1}
+            />
           ))}
         </div>
       )}
@@ -506,6 +538,41 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
 
   const diff = { beginner: { ko: '입문', en: 'Beginner' }, intermediate: { ko: '중급', en: 'Intermediate' }, advanced: { ko: '심화', en: 'Advanced' } }[post.difficulty];
   const canEditPost = Boolean(user?.id && !isLocalDevUser && post.authorProfileId === user.id);
+  const canDeleteCommentWithinWindow = (comment: Comment) => {
+    if (!user?.id || !comment.authorProfileId) return false;
+    if (comment.authorProfileId !== user.id) return false;
+    const createdAtMs = Date.parse(comment.createdAt);
+    if (Number.isNaN(createdAtMs)) return false;
+    return Date.now() - createdAtMs <= 30 * 60 * 1000;
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!post || engagementLoading) return;
+    setEngagementLoading(true);
+    const result = await deleteArticleComment({ articleId: post.id, commentId });
+    if (!result.ok) {
+      if (result.error === "comment_delete_window_expired") {
+        toast.error(lang === "ko" ? "댓글은 작성 후 30분 이내에만 삭제할 수 있습니다." : "Comments can only be deleted within 30 minutes.");
+      } else if (result.error === "comment_delete_forbidden") {
+        toast.error(lang === "ko" ? "본인 댓글만 삭제할 수 있습니다." : "You can delete only your own comments.");
+      } else if (result.error === "not_authenticated") {
+        toast.error(lang === "ko" ? "로그인 후 댓글을 삭제할 수 있습니다." : "Sign in to delete comments.");
+      } else {
+        toast.error(lang === "ko" ? "댓글 삭제에 실패했습니다." : "Failed to delete comment.");
+      }
+      setEngagementLoading(false);
+      return;
+    }
+
+    const [latestPost, latestComments] = await Promise.all([
+      getPostById(post.id),
+      getCommentsForPost(post.id),
+    ]);
+    setPost(latestPost);
+    setPostComments(latestComments);
+    toast.success(lang === "ko" ? "댓글이 삭제되었습니다." : "Comment deleted.");
+    setEngagementLoading(false);
+  };
 
   return (
     <div className="relative">
@@ -883,7 +950,14 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                 ) : (
                   postComments.map((comment) => (
                     <div key={comment.id} className="border-b border-border">
-                      <CommentItem comment={comment} lang={lang} depth={0} />
+                      <CommentItem
+                        comment={comment}
+                        lang={lang}
+                        currentUserId={user?.id ?? null}
+                        canDeleteComment={canDeleteCommentWithinWindow}
+                        onDeleteComment={handleDeleteComment}
+                        depth={0}
+                      />
                     </div>
                   ))
                 )}
