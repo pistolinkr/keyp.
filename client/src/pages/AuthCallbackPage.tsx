@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/lib/supabase";
 import { clearChallengeEmail } from "@/lib/authSecondFactor";
+import { getPostAuthRedirectPath } from "@/lib/contentApi";
 
 export default function AuthCallbackPage() {
   const [, setLocation] = useLocation();
@@ -45,7 +46,8 @@ export default function AuthCallbackPage() {
       if (quickCancelled) return;
       if (data.session?.user?.id) {
         clearChallengeEmail();
-        setLocation("/feed");
+        const path = await getPostAuthRedirectPath();
+        if (!quickCancelled) setLocation(path);
       }
     })();
     return () => {
@@ -103,7 +105,8 @@ export default function AuthCallbackPage() {
       }
 
       clearChallengeEmail();
-      setLocation("/feed");
+      const path = await getPostAuthRedirectPath();
+      if (!cancelled) setLocation(path);
     })();
 
     return () => {
@@ -129,8 +132,8 @@ export default function AuthCallbackPage() {
         ) : (
           <p className="text-sm text-muted-foreground">
             {lang === "ko"
-              ? "매직 링크를 확인했습니다. 피드로 이동합니다."
-              : "Magic link verified. Redirecting to feed."}
+              ? "매직 링크를 확인했습니다. 이동 중입니다."
+              : "Magic link verified. Redirecting."}
           </p>
         )}
       </div>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getConfiguredDevBypassEmail, useAuth } from "@/contexts/AuthContext";
 import { sendEmailChallengeCode, setChallengeEmail } from "@/lib/authSecondFactor";
+import { getPostAuthRedirectPath } from "@/lib/contentApi";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -91,7 +92,7 @@ export default function AuthPage() {
               <button
                 type="button"
                 className="flex-1 keyp-btn-primary h-10 text-sm"
-                onClick={() => setLocation("/feed")}
+                onClick={() => void getPostAuthRedirectPath().then(setLocation)}
               >
                 {lang === "ko" ? "피드로 가기" : "Go to feed"}
               </button>

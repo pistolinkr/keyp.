@@ -62,6 +62,7 @@ type CommentRow = {
   id: string;
   article_id: string;
   parent_id: string | null;
+  author_profile_id: string | null;
   author_username: string;
   author_display_name: string;
   author_display_name_en: string;
@@ -266,6 +267,7 @@ function mapCommentRowToComment(row: CommentRow): Comment {
     id: row.id,
     postId: row.article_id,
     parentId: row.parent_id,
+    authorProfileId: row.author_profile_id,
     author,
     content: row.content_ko,
     contentEn: row.content_en,
@@ -399,6 +401,7 @@ type ProfileRow = {
   comment_count: number;
   is_verified: boolean;
   tags: string[] | null;
+  is_onboarded?: boolean;
 };
 
 function mapProfileRowToUser(row: ProfileRow): User {
@@ -417,7 +420,41 @@ function mapProfileRowToUser(row: ProfileRow): User {
     commentCount: row.comment_count,
     isVerified: row.is_verified,
     tags: row.tags ?? [],
+    isOnboarded: row.is_onboarded === true,
   };
+}
+
+/** Where to send the user immediately after magic-link / OTP session is established. */
+export async function getPostAuthRedirectPath(): Promise<"/feed" | "/custom"> {
+  if (!isSupabaseConfigured()) {
+    return "/feed";
+  }
+  try {
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+    if (authErr || !user) {
+      return "/feed";
+    }
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("is_onboarded")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("getPostAuthRedirectPath:", error);
+      return "/feed";
+    }
+    if ((data as { is_onboarded?: boolean } | null)?.is_onboarded === true) {
+      return "/feed";
+    }
+    return "/custom";
+  } catch (err) {
+    console.error("getPostAuthRedirectPath:", err);
+    return "/feed";
+  }
 }
 
 export async function getProfileFromSupabase(username: string): Promise<User | null> {
@@ -576,6 +613,7 @@ export type ProfileUpdatePayload = {
   bio_en?: string;
   tags?: string[];
   avatar_url?: string | null;
+  is_onboarded?: boolean;
 };
 
 export async function updateMyProfile(
@@ -602,6 +640,7 @@ export async function updateMyProfile(
   if (updates.bio_en !== undefined) payload.bio_en = updates.bio_en;
   if (updates.tags !== undefined) payload.tags = updates.tags;
   if (updates.avatar_url !== undefined) payload.avatar_url = updates.avatar_url;
+  if (updates.is_onboarded !== undefined) payload.is_onboarded = updates.is_onboarded;
 
   const { data: row, error } = await supabase
     .from("profiles")
@@ -664,4 +703,39 @@ export async function uploadAvatarFile(
   }
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   return { ok: true, publicUrl: data.publicUrl };
+}
+
+export type OnboardingSurveyAnswerInput = {
+  question_key: string;
+  answer: string;
+};
+
+export async function upsertOnboardingSurveyAnswers(
+  answers: OnboardingSurveyAnswerInput[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "not_configured" };
+  }
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
+  if (authErr || !user) {
+    return { ok: false, error: "not_authenticated" };
+  }
+
+  const rows = answers.map((a) => ({
+    user_id: user.id,
+    question_key: a.question_key.trim().slice(0, 128),
+    answer: a.answer.trim().slice(0, 2000),
+  }));
+
+  const { error } = await supabase.from("user_onboarding_survey").upsert(rows, {
+    onConflict: "user_id,question_key",
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }

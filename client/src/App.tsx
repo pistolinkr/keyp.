@@ -23,6 +23,7 @@ import TroubleshootingPage from "./pages/TroubleshootingPage";
 import AuthPage from "./pages/AuthPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import AuthVerifyPage from "./pages/AuthVerifyPage";
+import Custom from "./pages/Custom";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,6 +46,31 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function RequireOnboarded({ children }: { children: ReactNode }) {
+  const { user, loading, profileOnboarding } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (loading || !user) return;
+    if (user.isLocalDev) return;
+    if (profileOnboarding.loading) return;
+    if (!profileOnboarding.isOnboarded) {
+      setLocation("/custom");
+    }
+  }, [loading, user, profileOnboarding.loading, profileOnboarding.isOnboarded, setLocation]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-background" />;
+  }
+  if (!user) {
+    return null;
+  }
+  if (!user.isLocalDev && (profileOnboarding.loading || !profileOnboarding.isOnboarded)) {
+    return <div className="min-h-screen bg-background" />;
+  }
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
@@ -53,48 +79,65 @@ function Router() {
       <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/auth/verify" component={AuthVerifyPage} />
       <Route path="/auth">{() => <Redirect to="/auth/signin" />}</Route>
+      <Route path="/custom">
+        {() => (
+          <RequireAuth>
+            <Custom />
+          </RequireAuth>
+        )}
+      </Route>
       <Route path="/feed">
         {() => (
           <RequireAuth>
-            <MainLayout>
-              <FeedPage />
-            </MainLayout>
+            <RequireOnboarded>
+              <MainLayout>
+                <FeedPage />
+              </MainLayout>
+            </RequireOnboarded>
           </RequireAuth>
         )}
       </Route>
       <Route path="/post/:id">
         {(params) => (
           <RequireAuth>
-            <MainLayout>
-              <PostDetailPage id={params.id} />
-            </MainLayout>
+            <RequireOnboarded>
+              <MainLayout>
+                <PostDetailPage id={params.id} />
+              </MainLayout>
+            </RequireOnboarded>
           </RequireAuth>
         )}
       </Route>
       <Route path="/write">
         {() => (
           <RequireAuth>
-            <MainLayout>
-              <EditorPage />
-            </MainLayout>
+            <RequireOnboarded>
+              <MainLayout>
+                <EditorPage />
+              </MainLayout>
+            </RequireOnboarded>
           </RequireAuth>
         )}
       </Route>
       <Route path="/profile/:username">
         {(params) => (
           <RequireAuth>
-            <MainLayout>
-              <ProfilePage username={params.username} />
-            </MainLayout>
+            <RequireOnboarded>
+              <MainLayout>
+                <ProfilePage username={params.username} />
+              </MainLayout>
+            </RequireOnboarded>
           </RequireAuth>
         )}
       </Route>
       <Route path="/search">
         {() => (
           <RequireAuth>
-            <MainLayout>
-              <SearchPage />
-            </MainLayout>
+            <RequireOnboarded>
+              <MainLayout>
+                <SearchPage />
+              </MainLayout>
+            </RequireOnboarded>
           </RequireAuth>
         )}
       </Route>

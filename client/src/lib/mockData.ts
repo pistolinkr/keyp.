@@ -16,6 +16,8 @@ export interface User {
   commentCount: number;
   isVerified: boolean;
   tags: string[];
+  /** Present when loaded from Supabase `profiles.is_onboarded`. */
+  isOnboarded?: boolean;
 }
 
 export interface Season {
@@ -109,6 +111,7 @@ export interface Comment {
   id: string;
   postId: string;
   parentId: string | null;
+  authorProfileId?: string | null;
   author: User;
   content: string;
   contentEn: string;

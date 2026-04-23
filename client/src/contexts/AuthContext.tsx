@@ -32,6 +32,9 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   profileUsername: string;
+  /** Supabase profile onboarding flag; true for guests, local dev, or when loaded and `profiles.is_onboarded` is true. */
+  profileOnboarding: { loading: boolean; isOnboarded: boolean };
+  refreshProfileOnboarding: () => Promise<void>;
   signInLocalDev: (email: string) => void;
   signOut: () => Promise<void>;
 }
@@ -99,6 +102,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [localDevUser, setLocalDevUser] = useState<AppAuthUser | null>(() =>
     readLocalDevUserFromStorage(),
   );
+  const [profileOnboarding, setProfileOnboarding] = useState<{
+    loading: boolean;
+    isOnboarded: boolean;
+  }>({ loading: true, isOnboarded: false });
 
   useEffect(() => {
     let mounted = true;
@@ -151,6 +158,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLocalDevUser(createLocalDevUser(normalized));
   }, []);
 
+  const loadProfileOnboarding = useCallback(async (userId: string | null, isLocal: boolean) => {
+    if (!userId || isLocal) {
+      setProfileOnboarding({ loading: false, isOnboarded: true });
+      return;
+    }
+    setProfileOnboarding({ loading: true, isOnboarded: false });
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("is_onboarded")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) {
+      console.error("Failed to load profile onboarding flag:", error.message);
+      setProfileOnboarding({ loading: false, isOnboarded: true });
+      return;
+    }
+    const done = (data as { is_onboarded?: boolean } | null)?.is_onboarded === true;
+    setProfileOnboarding({ loading: false, isOnboarded: done });
+  }, []);
+
+  useEffect(() => {
+    const u = toAppAuthUser(session) || localDevUser;
+    if (!u) {
+      setProfileOnboarding({ loading: false, isOnboarded: true });
+      return;
+    }
+    void loadProfileOnboarding(u.id, u.isLocalDev);
+  }, [session?.user?.id, localDevUser?.id, localDevUser?.isLocalDev, loadProfileOnboarding]);
+
+  const refreshProfileOnboarding = useCallback(async () => {
+    const u = toAppAuthUser(session) || localDevUser;
+    await loadProfileOnboarding(u?.id ?? null, Boolean(u?.isLocalDev));
+  }, [session, localDevUser, loadProfileOnboarding]);
+
   const signOut = useCallback(async () => {
     if (typeof window !== "undefined") {
       try {
@@ -173,10 +214,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       session,
       loading,
       profileUsername: getProfileUsername(user),
+      profileOnboarding,
+      refreshProfileOnboarding,
       signInLocalDev,
       signOut,
     };
-  }, [loading, localDevUser, session, signInLocalDev, signOut]);
+  }, [
+    loading,
+    localDevUser,
+    profileOnboarding,
+    refreshProfileOnboarding,
+    session,
+    signInLocalDev,
+    signOut,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
