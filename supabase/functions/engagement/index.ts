@@ -6,10 +6,12 @@ type Action =
   | "upvote_toggle"
   | "bookmark_toggle"
   | "comment_create"
+  | "comment_delete"
 
 type RequestBody = {
   action: Action
   articleId: string
+  commentId?: string
   parentId?: string | null
   content?: string
   locale?: "ko" | "en"
@@ -218,6 +220,45 @@ Deno.serve(async (req) => {
         actor_id: user.id,
         event_type: "comment_create",
         payload: { comment_id: inserted.id, depth, locale },
+      })
+    } else if (action === "comment_delete") {
+      const commentId = body.commentId?.trim()
+      if (!commentId) return json({ error: "comment_id_required" }, 400)
+
+      const { data: existing, error: existingErr } = await supabase
+        .from("comments")
+        .select("id, article_id, author_profile_id, created_at")
+        .eq("id", commentId)
+        .eq("article_id", articleId)
+        .maybeSingle()
+      if (existingErr) return json({ error: existingErr.message }, 400)
+      if (!existing) return json({ error: "comment_not_found" }, 404)
+
+      if (!existing.author_profile_id || existing.author_profile_id !== user.id) {
+        return json({ error: "comment_delete_forbidden" }, 403)
+      }
+
+      const createdAtMs = Date.parse(existing.created_at)
+      if (Number.isNaN(createdAtMs)) {
+        return json({ error: "comment_invalid_created_at" }, 400)
+      }
+      const elapsedMs = Date.now() - createdAtMs
+      if (elapsedMs > 30 * 60 * 1000) {
+        return json({ error: "comment_delete_window_expired" }, 403)
+      }
+
+      const { error: delErr } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId)
+        .eq("article_id", articleId)
+      if (delErr) return json({ error: delErr.message }, 400)
+
+      await supabase.from("engagement_events").insert({
+        article_id: articleId,
+        actor_id: user.id,
+        event_type: "comment_delete",
+        payload: { comment_id: commentId },
       })
     } else if (action !== "state") {
       return json({ error: "unsupported_action" }, 400)

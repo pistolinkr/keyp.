@@ -1,7 +1,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
-type EngagementAction = "state" | "upvote_toggle" | "bookmark_toggle" | "comment_create";
+type EngagementAction = "state" | "upvote_toggle" | "bookmark_toggle" | "comment_create" | "comment_delete";
 
 type EngagementState = {
   ok: true;
@@ -145,6 +145,15 @@ export async function createArticleComment(input: {
     content: input.content,
     locale: input.locale,
     parentId: input.parentId ?? null,
+  });
+}
+
+export async function deleteArticleComment(input: {
+  articleId: string;
+  commentId: string;
+}) {
+  return invokeEngagement("comment_delete", input.articleId, {
+    commentId: input.commentId,
   });
 }
 
