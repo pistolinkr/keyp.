@@ -668,47 +668,77 @@ export default function ProfilePage({ username }: ProfilePageProps) {
                 </div>
               ) : (
                 <div className="space-y-0">
-                  {userPosts.map((post, i) => (
-                    <Link key={post.id} href={`/post/${post.id}`}>
-                      <article
-                        className="border-b border-border py-5 hover:bg-accent/30 transition-colors cursor-pointer px-2 -mx-2 animate-fade-in-up opacity-0"
-                        style={{ animationDelay: `${i * 0.05}s`, animationFillMode: 'forwards' }}
+                  {userPosts.map((post, i) => {
+                    const canEditPostOnProfile = Boolean(
+                      authUser?.id &&
+                        !authUser.isLocalDev &&
+                        isSupabaseConfigured() &&
+                        isOwnProfile &&
+                        post.authorProfileId === authUser.id,
+                    );
+                    return (
+                      <div
+                        key={post.id}
+                        className="border-b border-border py-5 px-2 -mx-2 hover:bg-accent/30 transition-colors flex items-start gap-2 sm:gap-3 animate-fade-in-up opacity-0"
+                        style={{ animationDelay: `${i * 0.05}s`, animationFillMode: "forwards" }}
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-mono text-xs text-muted-foreground">
-                                {lang === 'ko' ? post.category : post.categoryEn}
-                              </span>
+                        <Link href={`/post/${post.id}`} className="flex-1 min-w-0 block">
+                          <article className="cursor-pointer">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-mono text-xs text-muted-foreground">
+                                    {lang === "ko" ? post.category : post.categoryEn}
+                                  </span>
+                                </div>
+                                <h3
+                                  className="font-bold text-base mb-1.5 hover:text-primary transition-colors"
+                                  style={{ fontFamily: "Noto Sans KR" }}
+                                >
+                                  {lang === "ko" ? post.title : post.titleEn}
+                                </h3>
+                                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                                  {lang === "ko" ? post.excerpt : post.excerptEn}
+                                </p>
+                                <div className="flex items-center gap-3 text-muted-foreground">
+                                  <span className="font-mono text-xs flex items-center gap-1">
+                                    <Award size={11} />
+                                    {post.upvoteCount}
+                                  </span>
+                                  <span className="font-mono text-xs flex items-center gap-1">
+                                    <MessageSquare size={11} />
+                                    {post.commentCount}
+                                  </span>
+                                  <span className="font-mono text-xs flex items-center gap-1">
+                                    <Calendar size={11} />
+                                    {new Date(post.createdAt).toLocaleDateString(
+                                      lang === "ko" ? "ko-KR" : "en-US",
+                                      { month: "short", day: "numeric" },
+                                    )}
+                                  </span>
+                                  {post.isReadOnly && (
+                                    <span className="font-mono text-xs border border-border px-1.5 py-0.5">
+                                      READ-ONLY
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <h3 className="font-bold text-base mb-1.5 hover:text-primary transition-colors" style={{ fontFamily: 'Noto Sans KR' }}>
-                              {lang === 'ko' ? post.title : post.titleEn}
-                            </h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                              {lang === 'ko' ? post.excerpt : post.excerptEn}
-                            </p>
-                            <div className="flex items-center gap-3 text-muted-foreground">
-                              <span className="font-mono text-xs flex items-center gap-1">
-                                <Award size={11} />
-                                {post.upvoteCount}
-                              </span>
-                              <span className="font-mono text-xs flex items-center gap-1">
-                                <MessageSquare size={11} />
-                                {post.commentCount}
-                              </span>
-                              <span className="font-mono text-xs flex items-center gap-1">
-                                <Calendar size={11} />
-                                {new Date(post.createdAt).toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' })}
-                              </span>
-                              {post.isReadOnly && (
-                                <span className="font-mono text-xs border border-border px-1.5 py-0.5">READ-ONLY</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </article>
-                    </Link>
-                  ))}
+                          </article>
+                        </Link>
+                        {canEditPostOnProfile ? (
+                          <Link
+                            href={`/write?edit=${encodeURIComponent(post.id)}`}
+                            className="shrink-0 self-start mt-0.5 inline-flex items-center gap-1 px-2.5 py-1.5 sm:px-3 border border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Pencil size={12} aria-hidden />
+                            <span>{lang === "ko" ? "수정" : "Edit"}</span>
+                          </Link>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
