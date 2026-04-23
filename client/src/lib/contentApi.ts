@@ -101,6 +101,21 @@ export function deriveCategoriesFromPosts(posts: Post[]): Category[] {
   }));
 }
 
+/** True if this user may open the editor for the post (UI gate; DB RLS still applies). */
+export function canCurrentUserEditPost(
+  post: Pick<Post, "authorProfileId" | "author">,
+  userId: string | null | undefined,
+  profileUsername: string | null | undefined,
+  isLocalDev?: boolean,
+): boolean {
+  if (!userId || isLocalDev) return false;
+  if (post.authorProfileId === userId) return true;
+  if (post.authorProfileId != null) return false;
+  const pu = profileUsername?.trim().toLowerCase();
+  const au = post.author.username?.trim().toLowerCase();
+  return Boolean(pu && au && pu === au);
+}
+
 function mapArticleRowToPost(row: ArticleRow): Post {
   const contents = row.article_contents ?? [];
   const tags = row.article_tags ?? [];

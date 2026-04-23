@@ -44,6 +44,7 @@ type EditorSnapshot = {
 type EditableArticleRow = {
   id: string;
   author_profile_id: string | null;
+  author_username: string | null;
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   original_lang: "ko" | "en";
@@ -209,6 +210,7 @@ export default function EditorPage() {
           `
           id,
           author_profile_id,
+          author_username,
           category,
           difficulty,
           original_lang,
@@ -227,7 +229,19 @@ export default function EditorPage() {
       }
 
       const row = data as EditableArticleRow;
-      if (!row.author_profile_id || row.author_profile_id !== user.id) {
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+      const usernameMatch =
+        myProfile?.username &&
+        row.author_username &&
+        myProfile.username.trim().toLowerCase() === row.author_username.trim().toLowerCase();
+      const allowed =
+        row.author_profile_id === user.id ||
+        (!row.author_profile_id && usernameMatch);
+      if (!allowed) {
         toast.error(globalLang === "ko" ? "본인 글만 수정할 수 있습니다." : "You can edit only your own posts.");
         setLocation(`/post/${editArticleId}`);
         return;
@@ -630,6 +644,7 @@ export default function EditorPage() {
         const { error: updateError } = await supabase
           .from("articles")
           .update({
+            author_profile_id: profile.id,
             category,
             author_username: profile.username,
             author_display_name: profile.display_name,
@@ -647,8 +662,7 @@ export default function EditorPage() {
             difficulty,
             updated_at: nowIso,
           })
-          .eq("id", targetArticleId)
-          .eq("author_profile_id", profile.id);
+          .eq("id", targetArticleId);
         if (updateError) throw updateError;
       } else {
         const slugBase = makeSlug(enTitle || koTitle) || `post-${Date.now()}`;

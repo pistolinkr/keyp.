@@ -19,6 +19,7 @@ import {
   updateMyProfile,
   uploadAvatarFile,
   avatarUploadErrorMessage,
+  canCurrentUserEditPost,
 } from "@/lib/contentApi";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
@@ -670,11 +671,9 @@ export default function ProfilePage({ username }: ProfilePageProps) {
                 <div className="space-y-0">
                   {userPosts.map((post, i) => {
                     const canEditPostOnProfile = Boolean(
-                      authUser?.id &&
-                        !authUser.isLocalDev &&
-                        isSupabaseConfigured() &&
+                      isSupabaseConfigured() &&
                         isOwnProfile &&
-                        post.authorProfileId === authUser.id,
+                        canCurrentUserEditPost(post, authUser?.id, user?.username, authUser?.isLocalDev),
                     );
                     return (
                       <div

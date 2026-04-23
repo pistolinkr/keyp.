@@ -10,7 +10,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
 import type { Comment, Post } from "@/lib/mockData";
-import { getPostById, getCommentsForPost, incrementArticleViewCount } from "@/lib/contentApi";
+import {
+  getPostById,
+  getCommentsForPost,
+  incrementArticleViewCount,
+  canCurrentUserEditPost,
+} from "@/lib/contentApi";
 import {
   createArticleComment,
   deleteArticleComment,
@@ -377,7 +382,7 @@ interface PostDetailPageProps {
 }
 
 export default function PostDetailPage({ id }: PostDetailPageProps) {
-  const { user } = useAuth();
+  const { user, profileUsername } = useAuth();
   const [, setLocation] = useLocation();
   const isLocalDevUser = user?.isLocalDev === true;
   const { lang: globalLang } = useLanguage();
@@ -537,7 +542,7 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
   }
 
   const diff = { beginner: { ko: '입문', en: 'Beginner' }, intermediate: { ko: '중급', en: 'Intermediate' }, advanced: { ko: '심화', en: 'Advanced' } }[post.difficulty];
-  const canEditPost = Boolean(user?.id && !isLocalDevUser && post.authorProfileId === user.id);
+  const canEditPost = canCurrentUserEditPost(post, user?.id, profileUsername, isLocalDevUser);
   const canDeleteCommentWithinWindow = (comment: Comment) => {
     if (!user?.id || !comment.authorProfileId) return false;
     if (comment.authorProfileId !== user.id) return false;
