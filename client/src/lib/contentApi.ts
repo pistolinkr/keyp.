@@ -674,6 +674,62 @@ export async function updateMyProfile(
   return { ok: true };
 }
 
+/** Keeps uploads under typical Supabase bucket limits (projects may cap below 1 MiB). */
+const AVATAR_UPLOAD_MAX_EDGE_PX = 1024;
+const AVATAR_UPLOAD_BUDGET_BYTES = 480 * 1024;
+
+/**
+ * Downscale and re-encode as JPEG so phone photos do not hit storage 413 limits.
+ */
+async function compressImageForAvatarUpload(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    let maxEdge = AVATAR_UPLOAD_MAX_EDGE_PX;
+    for (let round = 0; round < 8; round += 1) {
+      const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+      const tw = Math.max(1, Math.round(bitmap.width * scale));
+      const th = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = tw;
+      canvas.height = th;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("no_canvas");
+      }
+      ctx.drawImage(bitmap, 0, 0, tw, th);
+
+      const qualities = [0.9, 0.82, 0.74, 0.65, 0.56, 0.48, 0.4];
+      let best: Blob | null = null;
+      for (const q of qualities) {
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), "image/jpeg", q);
+        });
+        if (!blob) continue;
+        if (blob.size <= AVATAR_UPLOAD_BUDGET_BYTES) {
+          return new File([blob], `avatar-${crypto.randomUUID()}.jpg`, {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+          });
+        }
+        if (!best || blob.size < best.size) best = blob;
+      }
+      if (best && best.size <= AVATAR_UPLOAD_BUDGET_BYTES) {
+        return new File([best], `avatar-${crypto.randomUUID()}.jpg`, {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        });
+      }
+      maxEdge = Math.round(maxEdge * 0.72);
+      if (maxEdge < 64) {
+        break;
+      }
+    }
+    throw new Error("still_too_large");
+  } finally {
+    bitmap.close();
+  }
+}
+
 export async function uploadAvatarFile(
   file: File,
 ): Promise<{ ok: true; publicUrl: string } | { ok: false; error: string }> {
@@ -691,18 +747,82 @@ export async function uploadAvatarFile(
   if (authErr || !user) {
     return { ok: false, error: "not_authenticated" };
   }
-  const ext =
+
+  let toUpload = file;
+  let ext: "jpg" | "png" | "webp" =
     file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-  const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from("avatars").upload(path, file, {
+
+  const skipCompress = file.size < 80 * 1024 && file.type === "image/jpeg";
+
+  if (!skipCompress) {
+    try {
+      toUpload = await compressImageForAvatarUpload(file);
+      ext = "jpg";
+    } catch (err) {
+      console.warn("Avatar compress skipped or failed:", err);
+      if (file.size > AVATAR_UPLOAD_BUDGET_BYTES) {
+        return {
+          ok: false,
+          error: "file_too_large_compress_failed",
+        };
+      }
+    }
+  }
+
+  const storagePayloadTooLarge = (message: string | undefined) => {
+    const m = (message ?? "").toLowerCase();
+    return (
+      m.includes("maximum allowed size") ||
+      m.includes("413") ||
+      m.includes("payload too large") ||
+      m.includes("too large")
+    );
+  };
+
+  let path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+  let { error } = await supabase.storage.from("avatars").upload(path, toUpload, {
     cacheControl: "3600",
     upsert: false,
   });
+
+  if (error && skipCompress && storagePayloadTooLarge(error.message)) {
+    try {
+      toUpload = await compressImageForAvatarUpload(file);
+      ext = "jpg";
+      path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      ({ error } = await supabase.storage.from("avatars").upload(path, toUpload, {
+        cacheControl: "3600",
+        upsert: false,
+      }));
+    } catch {
+      return { ok: false, error: "file_too_large_compress_failed" };
+    }
+  }
+
   if (error) {
+    if (storagePayloadTooLarge(error.message)) {
+      return { ok: false, error: "payload_too_large" };
+    }
     return { ok: false, error: error.message };
   }
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   return { ok: true, publicUrl: data.publicUrl };
+}
+
+export function avatarUploadErrorMessage(error: string, lang: "ko" | "en"): string {
+  switch (error) {
+    case "invalid_type":
+      return lang === "ko"
+        ? "JPEG, PNG, WebP 이미지만 업로드할 수 있습니다."
+        : "Only JPEG, PNG, or WebP images.";
+    case "payload_too_large":
+    case "file_too_large_compress_failed":
+      return lang === "ko"
+        ? "이미지가 저장소 용량 제한을 넘겼습니다. 다른 사진으로 시도해 주세요. (계속되면 Supabase Storage 버킷의 최대 파일 크기를 늘려 주세요.)"
+        : "Image exceeds the storage size limit. Try another photo, or increase the max file size on your Supabase Storage avatars bucket.";
+    default:
+      return error;
+  }
 }
 
 export type OnboardingSurveyAnswerInput = {

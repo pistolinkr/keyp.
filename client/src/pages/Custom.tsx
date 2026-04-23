@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
 import {
+  avatarUploadErrorMessage,
   ensureMyProfileRow,
   getMyProfileFromSupabase,
   updateMyProfile,
@@ -149,11 +150,7 @@ export default function Custom() {
       if (pendingAvatar) {
         const up = await uploadAvatarFile(pendingAvatar);
         if (!up.ok) {
-          toast.error(
-            lang === "ko"
-              ? `이미지 업로드 실패: ${up.error}`
-              : `Image upload failed: ${up.error}`,
-          );
+          toast.error(avatarUploadErrorMessage(up.error, lang));
           setSubmitting(false);
           return;
         }

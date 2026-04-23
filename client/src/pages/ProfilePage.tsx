@@ -18,6 +18,7 @@ import {
   getPublishedPosts,
   updateMyProfile,
   uploadAvatarFile,
+  avatarUploadErrorMessage,
 } from "@/lib/contentApi";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
@@ -310,13 +311,7 @@ export default function ProfilePage({ username }: ProfilePageProps) {
       if (pendingAvatar) {
         const up = await uploadAvatarFile(pendingAvatar);
         if (!up.ok) {
-          toast.error(
-            up.error === "invalid_type"
-              ? lang === "ko"
-                ? "JPEG, PNG, WebP 이미지만 업로드할 수 있습니다."
-                : "Only JPEG, PNG, or WebP images."
-              : up.error,
-          );
+          toast.error(avatarUploadErrorMessage(up.error, lang));
           return;
         }
         nextAvatarUrl = up.publicUrl;
