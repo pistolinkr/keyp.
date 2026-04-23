@@ -41,10 +41,28 @@ type EditorSnapshot = {
   plainTextEn: string;
 };
 
+type EditableArticleRow = {
+  id: string;
+  author_profile_id: string | null;
+  category: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  original_lang: "ko" | "en";
+  article_contents: Array<{
+    locale: "ko" | "en";
+    title: string;
+    summary: string;
+    content: string;
+  }> | null;
+  article_tags: Array<{
+    locale: "ko" | "en";
+    tag: string;
+  }> | null;
+};
+
 export default function EditorPage() {
   const { lang: globalLang } = useLanguage();
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [postingLang, setPostingLang] = useState<'ko' | 'en'>(globalLang);
   const [title, setTitle] = useState('');
   const [titleEn, setTitleEn] = useState('');
@@ -58,6 +76,7 @@ export default function EditorPage() {
   const [showAI, setShowAI] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [loadingExistingArticle, setLoadingExistingArticle] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(true);
   const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
@@ -71,6 +90,11 @@ export default function EditorPage() {
   const suggestionsRef = useRef<AISuggestion[]>([]);
   const [plainTextKo, setPlainTextKo] = useState("");
   const [plainTextEn, setPlainTextEn] = useState("");
+  const editArticleId = (() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("edit");
+  })();
+  const isEditMode = Boolean(editArticleId);
   const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([
     {
       role: 'ai',
@@ -167,6 +191,70 @@ export default function EditorPage() {
 
   const currentContent = postingLang === "ko" ? contentKo : contentEn;
   const currentPlainText = postingLang === "ko" ? plainTextKo : plainTextEn;
+
+  useEffect(() => {
+    if (!isEditMode || !editArticleId) {
+      setLoadingExistingArticle(false);
+      return;
+    }
+    if (!user) return;
+
+    let cancelled = false;
+    setLoadingExistingArticle(true);
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("articles")
+        .select(
+          `
+          id,
+          author_profile_id,
+          category,
+          difficulty,
+          original_lang,
+          article_contents (locale, title, summary, content),
+          article_tags (locale, tag)
+        `,
+        )
+        .eq("id", editArticleId)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (error || !data) {
+        toast.error(globalLang === "ko" ? "수정할 글을 찾을 수 없습니다." : "Could not find the post to edit.");
+        setLocation("/feed");
+        return;
+      }
+
+      const row = data as EditableArticleRow;
+      if (!row.author_profile_id || row.author_profile_id !== user.id) {
+        toast.error(globalLang === "ko" ? "본인 글만 수정할 수 있습니다." : "You can edit only your own posts.");
+        setLocation(`/post/${editArticleId}`);
+        return;
+      }
+
+      const ko = row.article_contents?.find((item) => item.locale === "ko");
+      const en = row.article_contents?.find((item) => item.locale === "en");
+      const tagValues = Array.from(new Set((row.article_tags ?? []).map((t) => t.tag.trim()).filter(Boolean)));
+
+      setPostingLang(row.original_lang === "en" ? "en" : "ko");
+      setCategory(row.category);
+      setDifficulty(row.difficulty);
+      setTitle(ko?.title ?? "");
+      setTitleEn(en?.title ?? "");
+      setContentKo(ko?.content ?? "");
+      setContentEn(en?.content ?? "");
+      setPlainTextKo(htmlToPlainText(ko?.content ?? ""));
+      setPlainTextEn(htmlToPlainText(en?.content ?? ""));
+      setTags(tagValues.join(", "));
+      setEditorBodyInstance((n) => n + 1);
+      setLoadingExistingArticle(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editArticleId, globalLang, isEditMode, setLocation, user]);
 
   useEffect(() => {
     suggestionsRef.current = suggestions;
@@ -535,71 +623,101 @@ export default function EditorPage() {
       const enContent = contentEn || contentKo;
       const koSummary = summarize(plainTextKo);
       const enSummary = summarize(plainTextEn) || koSummary;
-      const articleId = crypto.randomUUID();
-      const slugBase = makeSlug(enTitle || koTitle) || `post-${Date.now()}`;
-      const slug = `${slugBase}-${Date.now().toString(36).slice(-4)}`;
       const nowIso = new Date().toISOString();
       const parsedTags = parseTags(tags);
-
-      const { error: articleError } = await supabase.from("articles").insert({
-        id: articleId,
-        slug,
-        category,
-        author_profile_id: profile.id,
-        legacy_author_id: null,
-        author_username: profile.username,
-        author_display_name: profile.display_name,
-        author_display_name_en: profile.display_name_en || profile.display_name,
-        author_avatar_url: profile.avatar_url || "/placeholder.svg",
-        author_level: profile.level ?? 1,
-        author_xp: profile.xp ?? 0,
-        author_joined_season: profile.joined_season,
-        author_is_verified: profile.is_verified ?? false,
-        author_tags: profile.tags ?? [],
-        status: "published",
-        featured_image: null,
-        published_at: nowIso,
-        seo_title: enTitle.slice(0, 70),
-        seo_description: enSummary.slice(0, 160),
-        episode: 0,
-        original_lang: postingLang,
-        read_time: getReadTime(postingLang === "ko" ? plainTextKo : plainTextEn || plainTextKo),
-        view_count: 0,
-        upvote_count: 0,
-        comment_count: 0,
-        bookmark_count: 0,
-        is_read_only: false,
-        is_featured: false,
-        difficulty,
-      });
-
-      if (articleError) {
-        throw articleError;
+      const targetArticleId = editArticleId ?? crypto.randomUUID();
+      if (isEditMode) {
+        const { error: updateError } = await supabase
+          .from("articles")
+          .update({
+            category,
+            author_username: profile.username,
+            author_display_name: profile.display_name,
+            author_display_name_en: profile.display_name_en || profile.display_name,
+            author_avatar_url: profile.avatar_url || "/placeholder.svg",
+            author_level: profile.level ?? 1,
+            author_xp: profile.xp ?? 0,
+            author_joined_season: profile.joined_season,
+            author_is_verified: profile.is_verified ?? false,
+            author_tags: profile.tags ?? [],
+            seo_title: enTitle.slice(0, 70),
+            seo_description: enSummary.slice(0, 160),
+            original_lang: postingLang,
+            read_time: getReadTime(postingLang === "ko" ? plainTextKo : plainTextEn || plainTextKo),
+            difficulty,
+            updated_at: nowIso,
+          })
+          .eq("id", targetArticleId)
+          .eq("author_profile_id", profile.id);
+        if (updateError) throw updateError;
+      } else {
+        const slugBase = makeSlug(enTitle || koTitle) || `post-${Date.now()}`;
+        const slug = `${slugBase}-${Date.now().toString(36).slice(-4)}`;
+        const { error: articleError } = await supabase.from("articles").insert({
+          id: targetArticleId,
+          slug,
+          category,
+          author_profile_id: profile.id,
+          legacy_author_id: null,
+          author_username: profile.username,
+          author_display_name: profile.display_name,
+          author_display_name_en: profile.display_name_en || profile.display_name,
+          author_avatar_url: profile.avatar_url || "/placeholder.svg",
+          author_level: profile.level ?? 1,
+          author_xp: profile.xp ?? 0,
+          author_joined_season: profile.joined_season,
+          author_is_verified: profile.is_verified ?? false,
+          author_tags: profile.tags ?? [],
+          status: "published",
+          featured_image: null,
+          published_at: nowIso,
+          seo_title: enTitle.slice(0, 70),
+          seo_description: enSummary.slice(0, 160),
+          episode: 0,
+          original_lang: postingLang,
+          read_time: getReadTime(postingLang === "ko" ? plainTextKo : plainTextEn || plainTextKo),
+          view_count: 0,
+          upvote_count: 0,
+          comment_count: 0,
+          bookmark_count: 0,
+          is_read_only: false,
+          is_featured: false,
+          difficulty,
+        });
+        if (articleError) throw articleError;
       }
 
-      const { error: contentError } = await supabase.from("article_contents").insert([
-        { article_id: articleId, locale: "ko", title: koTitle, summary: koSummary, content: koContent },
-        { article_id: articleId, locale: "en", title: enTitle, summary: enSummary, content: enContent },
-      ]);
+      const { error: contentError } = await supabase.from("article_contents").upsert(
+        [
+          { article_id: targetArticleId, locale: "ko", title: koTitle, summary: koSummary, content: koContent },
+          { article_id: targetArticleId, locale: "en", title: enTitle, summary: enSummary, content: enContent },
+        ],
+        { onConflict: "article_id,locale" },
+      );
+      if (contentError) throw contentError;
 
-      if (contentError) {
-        throw contentError;
-      }
+      const { error: clearTagsError } = await supabase
+        .from("article_tags")
+        .delete()
+        .eq("article_id", targetArticleId);
+      if (clearTagsError) throw clearTagsError;
 
       if (parsedTags.length > 0) {
         const tagRows = [
-          ...parsedTags.map((tag) => ({ article_id: articleId, locale: "ko" as const, tag })),
-          ...parsedTags.map((tag) => ({ article_id: articleId, locale: "en" as const, tag })),
+          ...parsedTags.map((tag) => ({ article_id: targetArticleId, locale: "ko" as const, tag })),
+          ...parsedTags.map((tag) => ({ article_id: targetArticleId, locale: "en" as const, tag })),
         ];
         const { error: tagError } = await supabase.from("article_tags").insert(tagRows);
-        if (tagError) {
-          throw tagError;
-        }
+        if (tagError) throw tagError;
       }
 
       invalidatePublishedPostsCache();
-      toast.success(globalLang === 'ko' ? '게시글이 발행되었습니다!' : 'Post published!');
-      setLocation(`/post/${articleId}`);
+      toast.success(
+        isEditMode
+          ? (globalLang === "ko" ? "게시글이 수정되었습니다!" : "Post updated!")
+          : (globalLang === "ko" ? "게시글이 발행되었습니다!" : "Post published!"),
+      );
+      setLocation(`/post/${targetArticleId}`);
     } catch (error: any) {
       console.error("publishPost:", error);
       toast.error(
@@ -651,12 +769,18 @@ export default function EditorPage() {
           <button
             className="keyp-btn-primary flex items-center gap-1.5 text-xs px-4 py-1.5"
             onClick={handlePublish}
-            disabled={isPublishing}
+            disabled={isPublishing || loadingExistingArticle}
           >
             <Check size={13} />
-            {isPublishing
-              ? (globalLang === "ko" ? "발행 중..." : "Publishing...")
-              : (globalLang === 'ko' ? '발행하기' : 'Publish')}
+            {loadingExistingArticle
+              ? (globalLang === "ko" ? "불러오는 중..." : "Loading...")
+              : isPublishing
+                ? (isEditMode
+                    ? (globalLang === "ko" ? "수정 중..." : "Updating...")
+                    : (globalLang === "ko" ? "발행 중..." : "Publishing..."))
+                : (isEditMode
+                    ? (globalLang === "ko" ? "수정하기" : "Update")
+                    : (globalLang === "ko" ? "발행하기" : "Publish"))}
           </button>
         </div>
 
@@ -685,6 +809,11 @@ export default function EditorPage() {
 
           {/* Title input */}
           <div className="mb-4">
+            {isEditMode && (
+              <p className="font-mono text-xs text-muted-foreground mb-2">
+                {globalLang === "ko" ? "수정 모드" : "Edit mode"} · ID {editArticleId}
+              </p>
+            )}
             <input
               type="text"
               value={postingLang === 'ko' ? title : titleEn}

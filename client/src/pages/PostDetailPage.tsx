@@ -5,7 +5,7 @@
  * Features: Dual-language toggle (no layout shift), Comment thread, AI assistant
  */
 import { useState, useEffect, useRef } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
@@ -346,6 +346,7 @@ interface PostDetailPageProps {
 
 export default function PostDetailPage({ id }: PostDetailPageProps) {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const isLocalDevUser = user?.isLocalDev === true;
   const { lang: globalLang } = useLanguage();
   const [lang, setLang] = useState<'ko' | 'en'>(globalLang);
@@ -504,6 +505,7 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
   }
 
   const diff = { beginner: { ko: '입문', en: 'Beginner' }, intermediate: { ko: '중급', en: 'Intermediate' }, advanced: { ko: '심화', en: 'Advanced' } }[post.difficulty];
+  const canEditPost = Boolean(user?.id && !isLocalDevUser && post.authorProfileId === user.id);
 
   return (
     <div className="relative">
@@ -752,6 +754,15 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
               >
                 <Share2 size={15} />
               </button>
+
+              {canEditPost && (
+                <button
+                  className="flex items-center gap-1.5 px-4 py-2 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors text-sm"
+                  onClick={() => setLocation(`/write?edit=${encodeURIComponent(post.id)}`)}
+                >
+                  {lang === "ko" ? "수정" : "Edit"}
+                </button>
+              )}
 
               <div className="flex-1" />
 

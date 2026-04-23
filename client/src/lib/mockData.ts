@@ -78,6 +78,7 @@ export interface CmsArticleTagRecord {
 
 export interface Post {
   id: string;
+  authorProfileId?: string | null;
   title: string;
   titleEn: string;
   excerpt: string;

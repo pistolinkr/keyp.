@@ -28,6 +28,7 @@ type ArticleRow = {
   id: string;
   slug: string;
   category: string;
+  author_profile_id: string | null;
   legacy_author_id: string | null;
   author_username: string;
   author_display_name: string;
@@ -127,6 +128,7 @@ function mapArticleRowToPost(row: ArticleRow): Post {
 
   return {
     id: row.id,
+    authorProfileId: row.author_profile_id,
     title: ko?.title ?? "",
     titleEn: en?.title ?? "",
     excerpt: ko?.summary ?? "",
