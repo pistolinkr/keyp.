@@ -10,7 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
 import type { Comment, Post } from "@/lib/mockData";
-import { getPostById, getCommentsForPost } from "@/lib/contentApi";
+import { getPostById, getCommentsForPost, incrementArticleViewCount } from "@/lib/contentApi";
 import {
   createArticleComment,
   getEngagementState,
@@ -19,6 +19,7 @@ import {
   toggleArticleUpvote,
 } from "@/lib/engagementApi";
 import { requestAiAssistant } from "@/lib/aiApi";
+import { formatPostedAgo } from "@/lib/postMeta";
 import {
   ArrowUp, MessageSquare, Bookmark, Clock, Eye, Share2,
   ChevronLeft, Sparkles, X, Send, ArrowDown, ChevronRight,
@@ -384,6 +385,13 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
         setBookmarked(false);
       }
       setDetailLoading(false);
+
+      if (p?.id) {
+        const next = await incrementArticleViewCount(p.id);
+        if (!cancelled && typeof next === "number") {
+          setPost((prev) => (prev ? { ...prev, viewCount: next } : prev));
+        }
+      }
     })();
     return () => {
       cancelled = true;
@@ -595,7 +603,7 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <span className="keyp-post-meta flex items-center gap-1">
                     <Clock size={12} />
-                    {post.readTime}min
+                    {formatPostedAgo(post.createdAt, lang)}
                   </span>
                   <span className="keyp-post-meta flex items-center gap-1">
                     <Eye size={12} />

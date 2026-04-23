@@ -191,6 +191,26 @@ export async function getPublishedPosts(): Promise<Post[]> {
   }
 }
 
+export async function incrementArticleViewCount(articleId: string): Promise<number | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+  try {
+    const { data, error } = await supabase.rpc("increment_article_view_count", {
+      p_article_id: articleId,
+    });
+    if (error) {
+      throw error;
+    }
+    // Any post list cache should be considered stale after a counter update.
+    invalidatePublishedPostsCache();
+    return typeof data === "number" ? data : null;
+  } catch (err) {
+    console.error("incrementArticleViewCount (Supabase):", err);
+    return null;
+  }
+}
+
 export async function getPostById(id: string): Promise<Post | null> {
   if (!isSupabaseConfigured()) {
     return mockPosts.find((p) => p.id === id) ?? null;

@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trendingTopics } from "@/lib/mockData";
 import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
+import { formatPostedAgo } from "@/lib/postMeta";
 import type { Post, User } from "@/lib/mockData";
 import { Search, X, Clock, Eye, ArrowUp, User as UserIcon, FileText, TrendingUp } from "lucide-react";
 
@@ -248,7 +249,7 @@ export default function SearchPage({ query: initialQuery = '' }: SearchPageProps
                           </span>
                         </div>
                         <span className="font-mono text-xs flex items-center gap-1">
-                          <Clock size={11} />{post.readTime}min
+                          <Clock size={11} />{formatPostedAgo(post.createdAt, lang)}
                         </span>
                         <span className="font-mono text-xs flex items-center gap-1">
                           <ArrowUp size={11} />{post.upvoteCount}

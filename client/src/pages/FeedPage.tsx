@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { trendingTopics } from "@/lib/mockData";
 import type { Post } from "@/lib/mockData";
 import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
+import { formatPostedAgo } from "@/lib/postMeta";
 import {
   getEngagementState,
   toggleArticleBookmark,
@@ -206,7 +207,7 @@ function PostItem({
             <div className="flex items-center gap-3 text-muted-foreground">
               <span className="keyp-post-meta flex items-center gap-1">
                 <Clock size={11} />
-                {post.readTime}min
+                {formatPostedAgo(post.createdAt, lang)}
               </span>
               <span className="keyp-post-meta flex items-center gap-1">
                 <Eye size={11} />
@@ -337,6 +338,7 @@ export default function FeedPage() {
                     upvoteCount: row.upvote_count ?? p.upvoteCount,
                     commentCount: row.comment_count ?? p.commentCount,
                     bookmarkCount: row.bookmark_count ?? p.bookmarkCount,
+                    viewCount: row.view_count ?? p.viewCount,
                     updatedAt: row.updated_at ?? p.updatedAt,
                   }
                 : p,
