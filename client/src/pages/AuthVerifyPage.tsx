@@ -101,7 +101,8 @@ export default function AuthVerifyPage() {
       // Clear any existing session so magic-link OTP is always for this email (new signup or account switch).
       await supabase.auth.signOut({ scope: "local" });
 
-      const redirectTo = `${window.location.origin}/auth/callback?email=${encodeURIComponent(email)}`;
+      // Keep redirect URL strict and query-free so Supabase allowlist matching is deterministic.
+      const redirectTo = new URL("/auth/callback", window.location.origin).toString();
       const otpOptions: {
         emailRedirectTo: string;
         shouldCreateUser: boolean;
