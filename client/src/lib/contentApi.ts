@@ -194,13 +194,36 @@ export async function getPublishedPosts(): Promise<Post[]> {
   }
 }
 
+const ANON_VIEWER_STORAGE_KEY = "keyp.anon_viewer_id";
+
+/** Stable id for deduping views when not signed in (24h server cooldown per article). */
+function getOrCreateAnonViewerId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    let id = window.localStorage.getItem(ANON_VIEWER_STORAGE_KEY);
+    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      id = crypto.randomUUID();
+      window.localStorage.setItem(ANON_VIEWER_STORAGE_KEY, id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 export async function incrementArticleViewCount(articleId: string): Promise<number | null> {
   if (!isSupabaseConfigured()) {
     return null;
   }
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const pAnonViewerKey = user?.id ? null : getOrCreateAnonViewerId();
+
     const { data, error } = await supabase.rpc("increment_article_view_count", {
       p_article_id: articleId,
+      p_anon_viewer_key: pAnonViewerKey,
     });
     if (error) {
       throw error;
