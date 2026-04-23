@@ -226,15 +226,23 @@ export async function handleAiPath(pathname: string, payload: unknown) {
   throw new Error(`Unknown AI path: ${pathname}`);
 }
 
-function sendError(res: Response, error: unknown) {
+export function formatAiHttpError(error: unknown): { status: number; json: Record<string, unknown> } {
   const message = error instanceof Error ? error.message : "Unknown AI error";
   const isOllamaIssue = message.toLowerCase().includes("ollama");
-  res.status(isOllamaIssue ? 503 : 400).json({
-    error: message,
-    hint: isOllamaIssue
-      ? "Make sure Ollama is running locally and model is pulled."
-      : undefined,
-  });
+  return {
+    status: isOllamaIssue ? 503 : 400,
+    json: isOllamaIssue
+      ? {
+          error: message,
+          hint: "Set OLLAMA_BASE_URL (and OLLAMA_MODEL) on the server to an Ollama host reachable from this process, or run Ollama locally for dev.",
+        }
+      : { error: message },
+  };
+}
+
+function sendError(res: Response, error: unknown) {
+  const { status, json } = formatAiHttpError(error);
+  res.status(status).json(json);
 }
 
 export function registerAiRoutes(app: Express) {

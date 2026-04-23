@@ -12,6 +12,7 @@ async function startServer() {
   const server = createServer(app);
   app.use(express.json({ limit: "2mb" }));
 
+  // AI runs on this process; OLLAMA_* must point to Ollama reachable from here (not the browser).
   registerAiRoutes(app);
 
   // Serve static files from dist/public in production
