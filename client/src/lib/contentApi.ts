@@ -283,6 +283,46 @@ export async function getPostById(id: string): Promise<Post | null> {
   }
 }
 
+/**
+ * Deletes the article owned by current user.
+ * Child rows (comments, upvotes, bookmarks, tags, contents, etc.) are removed by DB FK cascade.
+ */
+export async function deleteArticleById(
+  articleId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "not_configured" };
+  }
+  try {
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+    if (authErr || !user) {
+      return { ok: false, error: "not_authenticated" };
+    }
+
+    const { data, error } = await supabase
+      .from("articles")
+      .delete()
+      .eq("id", articleId)
+      .eq("author_profile_id", user.id)
+      .select("id");
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+    if (!data || data.length === 0) {
+      return { ok: false, error: "post_delete_forbidden_or_not_found" };
+    }
+
+    invalidatePublishedPostsCache();
+    return { ok: true };
+  } catch (err) {
+    console.error("deleteArticleById (Supabase):", err);
+    return { ok: false, error: "post_delete_failed" };
+  }
+}
+
 function mapCommentRowToComment(row: CommentRow): Comment {
   const author: User = {
     id: row.author_username,

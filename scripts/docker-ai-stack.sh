@@ -15,6 +15,9 @@ set -euo pipefail
 NETWORK="${KEYP_DOCKER_NETWORK:-keyp_ai}"
 OLLAMA_NAME="${KEYP_OLLAMA_NAME:-keyp-ollama}"
 API_NAME="${KEYP_API_NAME:-keyp-api}"
+# Some Docker APIs return names with leading "/" (e.g. "/keyp-ollama").
+OLLAMA_NAME="${OLLAMA_NAME#/}"
+API_NAME="${API_NAME#/}"
 VOLUME="${KEYP_OLLAMA_VOLUME:-keyp_ollama_data}"
 HOST_PORT="${HOST_PORT:-3000}"
 API_IMAGE="${KEYP_API_IMAGE:-keyp-api:local}"
@@ -65,11 +68,9 @@ ensure_volume() {
 ollama_up() {
   ensure_network
   ensure_volume
-  if docker ps --format '{{.Names}}' | grep -qx "$OLLAMA_NAME"; then
-    return 0
-  fi
-  if docker ps -a --format '{{.Names}}' | grep -qx "$OLLAMA_NAME"; then
-    docker start "$OLLAMA_NAME"
+  if docker inspect "$OLLAMA_NAME" >/dev/null 2>&1; then
+    # Starts if stopped; no-op if already running.
+    docker start "$OLLAMA_NAME" >/dev/null 2>&1 || true
     return 0
   fi
   docker run -d \

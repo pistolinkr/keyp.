@@ -15,6 +15,7 @@ import {
   getCommentsForPost,
   incrementArticleViewCount,
   canCurrentUserEditPost,
+  deleteArticleById,
 } from "@/lib/contentApi";
 import {
   createArticleComment,
@@ -33,6 +34,16 @@ import {
   , Trash2
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function useCommentComposerIdentity() {
   const { user } = useAuth();
@@ -400,6 +411,10 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
   const [postComments, setPostComments] = useState<Comment[]>([]);
   const [detailLoading, setDetailLoading] = useState(true);
   const { avatar: composerAvatar, displayName: composerDisplayName } = useCommentComposerIdentity();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTitleInput, setDeleteTitleInput] = useState("");
+  const [deletePhraseInput, setDeletePhraseInput] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -543,6 +558,10 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
 
   const diff = { beginner: { ko: '입문', en: 'Beginner' }, intermediate: { ko: '중급', en: 'Intermediate' }, advanced: { ko: '심화', en: 'Advanced' } }[post.difficulty];
   const canEditPost = canCurrentUserEditPost(post, user?.id, profileUsername, isLocalDevUser);
+  const deletePhraseMagic = "Delete this posting";
+  const deleteTitleMatches = [post.title, post.titleEn].some((t) => t.trim() && t.trim() === deleteTitleInput.trim());
+  const deletePhraseMatches = deletePhraseInput.trim() === deletePhraseMagic;
+  const canConfirmDelete = deleteTitleMatches && deletePhraseMatches && !deleteBusy;
   const canDeleteCommentWithinWindow = (comment: Comment) => {
     if (!user?.id || !comment.authorProfileId) return false;
     if (comment.authorProfileId !== user.id) return false;
@@ -577,6 +596,49 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
     setPostComments(latestComments);
     toast.success(lang === "ko" ? "댓글이 삭제되었습니다." : "Comment deleted.");
     setEngagementLoading(false);
+  };
+
+  const resetDeleteDialog = () => {
+    setDeleteTitleInput("");
+    setDeletePhraseInput("");
+    setDeleteBusy(false);
+  };
+
+  const handleDeletePost = async () => {
+    if (!canConfirmDelete) {
+      toast.error(
+        lang === "ko"
+          ? "포스팅 제목과 'Delete this posting' 문구를 정확히 입력해 주세요."
+          : "Please type the exact post title and 'Delete this posting'.",
+      );
+      return;
+    }
+    setDeleteBusy(true);
+    const result = await deleteArticleById(post.id);
+    if (!result.ok) {
+      if (result.error === "not_authenticated") {
+        toast.error(lang === "ko" ? "로그인 후 삭제할 수 있습니다." : "Sign in to delete posts.");
+      } else if (result.error === "post_delete_forbidden_or_not_found") {
+        toast.error(
+          lang === "ko"
+            ? "본인 글만 삭제할 수 있거나, 이미 삭제된 글입니다."
+            : "You can delete only your own post, or it was already deleted.",
+        );
+      } else {
+        toast.error(lang === "ko" ? "포스팅 삭제에 실패했습니다." : "Failed to delete the post.");
+      }
+      setDeleteBusy(false);
+      return;
+    }
+
+    setDeleteDialogOpen(false);
+    resetDeleteDialog();
+    toast.success(
+      lang === "ko"
+        ? "포스팅이 삭제되었습니다. 댓글과 반응도 함께 삭제되었습니다."
+        : "Post deleted. Its comments and reactions were removed as well.",
+    );
+    setLocation("/feed");
   };
 
   return (
@@ -835,6 +897,14 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                   {lang === "ko" ? "수정" : "Edit"}
                 </button>
               )}
+              {canEditPost && (
+                <button
+                  className="flex items-center gap-1.5 px-4 py-2 border border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive/10 transition-colors text-sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  {lang === "ko" ? "삭제" : "Delete"}
+                </button>
+              )}
 
               <div className="flex-1" />
 
@@ -851,6 +921,67 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
                 {lang === 'ko' ? 'AI 어시스턴트' : 'AI Assistant'}
               </button>
             </div>
+
+            <AlertDialog
+              open={deleteDialogOpen}
+              onOpenChange={(open) => {
+                setDeleteDialogOpen(open);
+                if (!open) resetDeleteDialog();
+              }}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{lang === "ko" ? "포스팅 삭제 확인" : "Confirm Post Deletion"}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {lang === "ko"
+                      ? "이 작업은 되돌릴 수 없습니다. 아래 2개 값을 정확히 입력해야 삭제됩니다. 삭제 시 해당 포스팅의 댓글과 반응(업보트/북마크)도 함께 삭제됩니다."
+                      : "This action cannot be undone. Type both values exactly to delete. Deleting a post also removes its comments and reactions (upvotes/bookmarks)."}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{lang === "ko" ? "포스팅 제목 입력" : "Type post title"}</p>
+                    <input
+                      value={deleteTitleInput}
+                      onChange={(e) => setDeleteTitleInput(e.target.value)}
+                      placeholder={lang === "ko" ? "포스팅 제목을 정확히 입력" : "Type exact post title"}
+                      className="w-full bg-muted border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {lang === "ko" ? "기준 제목:" : "Expected title:"}{" "}
+                      <span className="font-mono">{lang === "ko" ? post.title : post.titleEn}</span>
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{lang === "ko" ? "아래 문구 입력" : "Type this phrase"}</p>
+                    <input
+                      value={deletePhraseInput}
+                      onChange={(e) => setDeletePhraseInput(e.target.value)}
+                      placeholder="Delete this posting"
+                      className="w-full bg-muted border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Expected: <span className="font-mono">{deletePhraseMagic}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleteBusy}>{lang === "ko" ? "취소" : "Cancel"}</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void handleDeletePost();
+                    }}
+                    disabled={!canConfirmDelete}
+                  >
+                    {deleteBusy ? (lang === "ko" ? "삭제 중..." : "Deleting...") : lang === "ko" ? "포스팅 삭제" : "Delete Post"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             {/* ─── COMMENTS ─── */}
             <section id="comments" className="mt-10">
