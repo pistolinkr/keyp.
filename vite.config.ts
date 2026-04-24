@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
-import { handleAiPath } from "./shared/aiBackend";
+import { handleAiPath } from "./api/lib/aiBackend";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin

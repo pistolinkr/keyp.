@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
-import { handleAiPath, formatAiHttpError } from "../shared/aiBackend";
+import { handleAiPath, formatAiHttpError } from "../api/lib/aiBackend";
 
-export { handleAiPath, formatAiHttpError } from "../shared/aiBackend";
+export { handleAiPath, formatAiHttpError } from "../api/lib/aiBackend";
 
 function sendError(res: Response, error: unknown) {
   const { status, json } = formatAiHttpError(error);

@@ -1,6 +1,6 @@
 /**
- * Shared Ollama-backed AI handlers for Express, Vite dev middleware, and Vercel serverless.
- * Kept under /shared so Vercel can bundle api/* without importing ../server (often missing at runtime).
+ * Ollama-backed AI handlers for Express, Vite dev middleware, and Vercel serverless.
+ * Lives under api/lib so Vercel compiles it with /api routes (imports from outside /api often crash at runtime).
  */
 
 type AiSummaryPayload = {

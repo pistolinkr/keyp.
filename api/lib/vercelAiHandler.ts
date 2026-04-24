@@ -1,4 +1,4 @@
-import { handleAiPath, formatAiHttpError } from "../../shared/aiBackend";
+import { handleAiPath, formatAiHttpError } from "./aiBackend";
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
