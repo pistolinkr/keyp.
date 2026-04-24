@@ -1,0 +1,27 @@
+# AI backend + Ollama (optional — requires Docker Compose plugin).
+# Without compose: ./scripts/docker-ai-stack.sh up  OR  pnpm docker:ai:up
+# First model: ./scripts/docker-ai-stack.sh pull-model  OR  docker compose exec ollama ollama pull llama3.1:8b
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    # For NVIDIA on Linux, add deploy.resources (see Ollama docs).
+
+  api:
+    build: .
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      # SPA on another host (e.g. Vercel): set to that origin, e.g. https://your-app.vercel.app
+      AI_CORS_ORIGIN: ${AI_CORS_ORIGIN:-}
+    depends_on:
+      - ollama
+
+volumes:
+  ollama_data:

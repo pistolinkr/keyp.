@@ -227,18 +227,42 @@ export async function handleAiPath(pathname: string, payload: unknown) {
   throw new Error(`Unknown AI path: ${pathname}`);
 }
 
+function errorChainText(error: unknown): string {
+  const parts: string[] = [];
+  let e: unknown = error;
+  let depth = 0;
+  while (e != null && depth++ < 6) {
+    if (e instanceof Error) {
+      parts.push(e.message);
+      e = e.cause;
+    } else {
+      parts.push(String(e));
+      break;
+    }
+  }
+  return parts.join(" | ");
+}
+
 export function formatAiHttpError(error: unknown): { status: number; json: Record<string, unknown> } {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = errorChainText(error);
   const m = message.toLowerCase();
   const isUpstreamIssue =
     m.includes("ollama") ||
     m.includes("econnrefused") ||
+    m.includes("econnreset") ||
     m.includes("fetch failed") ||
+    m.includes("failed to fetch") ||
     m.includes("network error") ||
     m.includes("enotfound") ||
     m.includes("etimedout") ||
     m.includes("socket hang") ||
-    m.includes("failed to connect");
+    m.includes("failed to connect") ||
+    m.includes("connection refused") ||
+    m.includes("connect timeout") ||
+    m.includes("undici") ||
+    m.includes("abort") ||
+    m.includes("premature close") ||
+    m.includes("other side closed");
   return {
     status: isUpstreamIssue ? 503 : 400,
     json: isUpstreamIssue

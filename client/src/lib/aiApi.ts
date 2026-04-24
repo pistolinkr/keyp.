@@ -2,9 +2,22 @@ type AiLang = "ko" | "en";
 
 type AssistantHistory = Array<{ role: "user" | "assistant"; text: string }>;
 
+/**
+ * Origin only (e.g. https://api.example.com). Do not include /api/ai or /translate —
+ * paths are appended as /api/ai/{summary|assistant|translate}.
+ */
+function normalizeAiApiBase(raw: string | undefined): string {
+  if (!raw?.trim()) return "";
+  let s = raw.trim().replace(/\/+$/, "");
+  // Accept mistaken full paths like .../api/ai/translate
+  s = s.replace(/\/api\/ai(?:\/[^/]*)?$/i, "");
+  s = s.replace(/\/+$/, "");
+  return s;
+}
+
 /** Same-origin by default. Set VITE_AI_API_BASE_URL when AI runs on another host (e.g. dedicated Node server). */
 function aiApiUrl(path: "summary" | "assistant" | "translate"): string {
-  const base = (import.meta.env.VITE_AI_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+  const base = normalizeAiApiBase(import.meta.env.VITE_AI_API_BASE_URL as string | undefined);
   const prefix = base ? `${base}/api/ai` : "/api/ai";
   return `${prefix}/${path}`;
 }

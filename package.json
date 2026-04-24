@@ -9,7 +9,11 @@
     "start": "NODE_ENV=production node dist/index.js",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "docker:ai:up": "bash scripts/docker-ai-stack.sh up",
+    "docker:ai:down": "bash scripts/docker-ai-stack.sh down",
+    "docker:ai:pull-model": "bash scripts/docker-ai-stack.sh pull-model",
+    "docker:ai:logs": "bash scripts/docker-ai-stack.sh logs"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^2.0.2",
