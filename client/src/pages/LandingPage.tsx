@@ -181,6 +181,8 @@ export default function LandingPage() {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang } = useLanguage();
   const [selectedTrendKeyword, setSelectedTrendKeyword] = useState<string>(TREND_KEYWORD_BRIEFS[0]?.keyword ?? "");
+  /** Large desktop + real hover (not most tablets / phones) → show definition on hover; else click. */
+  const [trendKeywordByHover, setTrendKeywordByHover] = useState(false);
   const [isHeroCtaHovered, setIsHeroCtaHovered] = useState(false);
   const [heroCtaButtonWidth, setHeroCtaButtonWidth] = useState(0);
   const [heroCtaContainerWidth, setHeroCtaContainerWidth] = useState(0);
@@ -197,6 +199,21 @@ export default function LandingPage() {
     targetY: 0,
     targetScale: 1,
   });
+
+  useEffect(() => {
+    const query =
+      typeof window !== "undefined"
+        ? window.matchMedia(
+            /* lg+ and real mouse/trackpad, not touch-primary tablets */
+            "(min-width: 1024px) and (hover: hover) and (pointer: fine)",
+          )
+        : null;
+    if (!query) return;
+    const apply = () => setTrendKeywordByHover(query.matches);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
 
   const content = {
     ko: {
@@ -829,7 +846,13 @@ export default function LandingPage() {
               <button
                 key={item.keyword}
                 type="button"
-                onClick={() => setSelectedTrendKeyword(item.keyword)}
+                onClick={
+                  trendKeywordByHover ? undefined : () => setSelectedTrendKeyword(item.keyword)
+                }
+                onMouseEnter={
+                  trendKeywordByHover ? () => setSelectedTrendKeyword(item.keyword) : undefined
+                }
+                onFocus={trendKeywordByHover ? () => setSelectedTrendKeyword(item.keyword) : undefined}
                 className={`relative z-20 inline-flex h-auto max-w-full min-w-0 shrink-0 items-center justify-center self-start border px-3 py-1.5 text-left text-lg font-black leading-tight tracking-tight transition-all duration-200 md:text-2xl ${
                   selectedTrendKeyword === item.keyword
                     ? "origin-center scale-[1.02] shadow-sm"
