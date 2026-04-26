@@ -1,0 +1,36 @@
+# W1–W5 mitigations: static guards on every PR; RLS smoke is optional (manual / scheduled).
+name: security-checks
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  static-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Security static guards
+        run: node scripts/security/static-guards.mjs
+      - name: Typecheck
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run check
+
+  # Nightly: add secrets + RUN_RLS_SMOKE=1 for staging project (optional).
+  # rls-smoke:
+  #   if: github.event_name == 'schedule'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: chmod +x scripts/security/pen-rls-smoke.sh
+  #     - env:
+  #         SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+  #         SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+  #         TEST_USER_A_JWT: ${{ secrets.STAGING_TEST_USER_A_JWT }}
+  #       run: ./scripts/security/pen-rls-smoke.sh

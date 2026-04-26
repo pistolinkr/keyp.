@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { invalidatePublishedPostsCache } from "@/lib/contentApi";
 import { requestAiAssistant, requestAiSummary, requestAiTranslation } from "@/lib/aiApi";
+import { sanitizePostBodyHtml } from "@/lib/sanitizePostHtml";
 import {
   ChevronLeft, Sparkles, X, Send, Check, Eye, EyeOff, Save, Globe, RotateCcw
 } from "lucide-react";
@@ -903,7 +904,10 @@ export default function EditorPage() {
             <div
               className="prose-keyp min-h-64"
               dangerouslySetInnerHTML={{
-                __html: currentContent || `<p class="text-muted-foreground">${postingLang === 'ko' ? '내용을 입력하면 미리보기가 표시됩니다.' : 'Preview will appear when you start writing.'}</p>`,
+                __html: sanitizePostBodyHtml(
+                  currentContent ||
+                    `<p class="text-muted-foreground">${postingLang === 'ko' ? '내용을 입력하면 미리보기가 표시됩니다.' : 'Preview will appear when you start writing.'}</p>`,
+                ),
               }}
             />
           ) : (

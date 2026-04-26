@@ -13,6 +13,9 @@ const LOCAL_DEV_LOGIN_KEY = "keyp.local.dev.login";
 
 /** 로컬 `.env.local` 전용. 프로덕션 빌드에는 설정하지 마세요. */
 export function getConfiguredDevBypassEmail(): string {
+  if (import.meta.env.PROD) {
+    return "";
+  }
   return (
     (import.meta.env.VITE_DEV_USER_EMAIL as string | undefined)?.trim().toLowerCase() ??
     ""

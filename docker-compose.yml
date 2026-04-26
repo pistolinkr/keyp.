@@ -20,6 +20,10 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
       # SPA on another host (e.g. Vercel): set to that origin, e.g. https://your-app.vercel.app
       AI_CORS_ORIGIN: ${AI_CORS_ORIGIN:-}
+      # JWT verification for /api/ai (same values as in Vite public env). Private stack only: set AI_DISABLE_AUTH=1
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      AI_DISABLE_AUTH: ${AI_DISABLE_AUTH:-}
     depends_on:
       - ollama
 

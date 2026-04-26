@@ -824,15 +824,15 @@ export default function LandingPage() {
           className="border bg-card p-6 md:p-8 mb-8"
           style={{ borderColor: "rgba(245, 220, 74, 0.45)" }}
         >
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap items-start gap-2.5">
             {TREND_KEYWORD_BRIEFS.map((item) => (
               <button
                 key={item.keyword}
                 type="button"
                 onClick={() => setSelectedTrendKeyword(item.keyword)}
-                className={`relative z-20 px-3 py-1.5 border text-lg md:text-2xl font-black tracking-tight transition-all duration-200 ${
+                className={`relative z-20 inline-flex h-auto max-w-full min-w-0 shrink-0 items-center justify-center self-start border px-3 py-1.5 text-left text-lg font-black leading-tight tracking-tight transition-all duration-200 md:text-2xl ${
                   selectedTrendKeyword === item.keyword
-                    ? "scale-[1.02] shadow-sm"
+                    ? "origin-center scale-[1.02] shadow-sm"
                     : "hover:-translate-y-0.5"
                 }`}
                 style={{
@@ -855,7 +855,7 @@ export default function LandingPage() {
         <div className="border-l border-t border-border">
           <article
             key={selectedTrendArticle.keyword}
-            className="border-r border-b border-border p-6 md:p-7 transition-all duration-300 ease-out hover:bg-accent/40"
+            className="cursor-default border-r border-b border-border p-6 md:p-7 transition-all duration-300 ease-out hover:bg-accent/40"
           >
             <div className="animate-fade-in-up" key={selectedTrendArticle.keyword}>
               <h3

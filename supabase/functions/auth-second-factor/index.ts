@@ -1,5 +1,6 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeadersForRequest } from "../_shared/cors.ts";
 
 type Action = "send_code" | "verify_code";
 
@@ -9,26 +10,10 @@ type RequestBody = {
   code?: string;
 };
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
 const CODE_EXPIRY_MINUTES = 10;
 const CODE_LENGTH = 8;
 const MAX_VERIFY_ATTEMPTS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
-
-function responseJson(payload: unknown, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      ...CORS_HEADERS,
-      "Content-Type": "application/json",
-    },
-  });
-}
 
 function createRandomCode(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -87,15 +72,21 @@ function normalizeEmail(input: string): string {
 }
 
 Deno.serve(async (req) => {
+  const cors = corsHeadersForRequest(req);
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
   try {
-    if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
-    if (req.method !== "POST") return responseJson({ error: "method_not_allowed" }, 405);
+    if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+    if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
     const url = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !serviceRoleKey) {
       console.error("auth-second-factor: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-      return responseJson({ error: "missing_function_env" }, 500);
+      return json({ error: "missing_function_env" }, 500);
     }
 
     const admin = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
@@ -104,12 +95,12 @@ Deno.serve(async (req) => {
     try {
       body = (await req.json()) as RequestBody;
     } catch {
-      return responseJson({ error: "invalid_json" }, 400);
+      return json({ error: "invalid_json" }, 400);
     }
 
     const rawEmail = body.email?.trim() ?? "";
     if (!rawEmail || !EMAIL_REGEX.test(rawEmail)) {
-      return responseJson({ error: "invalid_email" }, 400);
+      return json({ error: "invalid_email" }, 400);
     }
     const email = normalizeEmail(rawEmail);
 
@@ -123,7 +114,7 @@ Deno.serve(async (req) => {
         .eq("email", email)
         .is("consumed_at", null);
       if (invalidate.error) {
-        return responseJson({ error: invalidate.error.message }, 400);
+        return json({ error: invalidate.error.message }, 400);
       }
 
       const expiresAt = new Date(Date.now() + CODE_EXPIRY_MINUTES * 60_000).toISOString();
@@ -133,23 +124,23 @@ Deno.serve(async (req) => {
         expires_at: expiresAt,
       });
       if (insertError) {
-        return responseJson({ error: insertError.message }, 400);
+        return json({ error: insertError.message }, 400);
       }
 
       const sent = await sendCodeEmail(email, code);
       if (!sent.ok) {
         const err = sent.error ?? "email_send_failed";
         const status = err === "missing_email_provider_env" ? 503 : 502;
-        return responseJson({ error: err }, status);
+        return json({ error: err }, status);
       }
 
-      return responseJson({ ok: true, expiresAt });
+      return json({ ok: true, expiresAt });
     }
 
     if (body.action === "verify_code") {
       const rawCode = body.code?.trim().toUpperCase();
       if (!rawCode || rawCode.length !== CODE_LENGTH) {
-        return responseJson({ error: "invalid_code_format" }, 400);
+        return json({ error: "invalid_code_format" }, 400);
       }
 
       const { data: latestCode, error: selectError } = await admin
@@ -161,10 +152,10 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
       if (selectError) {
-        return responseJson({ error: selectError.message }, 400);
+        return json({ error: selectError.message }, 400);
       }
       if (!latestCode) {
-        return responseJson({ error: "code_not_found" }, 404);
+        return json({ error: "code_not_found" }, 404);
       }
 
       const now = Date.now();
@@ -172,16 +163,16 @@ Deno.serve(async (req) => {
       const nowIso = new Date(now).toISOString();
       if (!Number.isFinite(expiresAtMs)) {
         await admin.from("auth_email_challenges").update({ consumed_at: nowIso }).eq("id", latestCode.id);
-        return responseJson({ error: "code_expired" }, 400);
+        return json({ error: "code_expired" }, 400);
       }
       if (expiresAtMs <= now) {
         await admin.from("auth_email_challenges").update({ consumed_at: nowIso }).eq("id", latestCode.id);
-        return responseJson({ error: "code_expired" }, 400);
+        return json({ error: "code_expired" }, 400);
       }
 
       if ((latestCode.attempt_count ?? 0) >= MAX_VERIFY_ATTEMPTS) {
         await admin.from("auth_email_challenges").update({ consumed_at: nowIso }).eq("id", latestCode.id);
-        return responseJson({ error: "code_locked" }, 429);
+        return json({ error: "code_locked" }, 429);
       }
 
       const incomingHash = await hashCode(rawCode);
@@ -190,7 +181,7 @@ Deno.serve(async (req) => {
           .from("auth_email_challenges")
           .update({ attempt_count: (latestCode.attempt_count ?? 0) + 1 })
           .eq("id", latestCode.id);
-        return responseJson({ error: "code_mismatch" }, 400);
+        return json({ error: "code_mismatch" }, 400);
       }
 
       const { error: consumeError } = await admin
@@ -198,15 +189,15 @@ Deno.serve(async (req) => {
         .update({ consumed_at: nowIso, magic_link_sent_at: nowIso })
         .eq("id", latestCode.id);
       if (consumeError) {
-        return responseJson({ error: consumeError.message }, 400);
+        return json({ error: consumeError.message }, 400);
       }
 
-      return responseJson({ ok: true, codeVerified: true });
+      return json({ ok: true, codeVerified: true });
     }
 
-    return responseJson({ error: "unsupported_action" }, 400);
+    return json({ error: "unsupported_action" }, 400);
   } catch (e) {
     console.error("auth-second-factor_unhandled", e instanceof Error ? e.message : e);
-    return responseJson({ error: "internal_error" }, 500);
+    return json({ error: "internal_error" }, 500);
   }
 });

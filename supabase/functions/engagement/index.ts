@@ -1,5 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "npm:@supabase/supabase-js@2"
+import { corsHeadersForRequest } from "../_shared/cors.ts"
+import { E, logPostgrestError } from "../_shared/safeError.ts"
 
 type Action =
   | "state"
@@ -17,17 +19,11 @@ type RequestBody = {
   locale?: "ko" | "en"
 }
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-}
-
-function json(data: unknown, status = 200) {
+function json(data: unknown, status: number, cors: Record<string, string>) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
-      ...CORS_HEADERS,
+      ...cors,
       "Content-Type": "application/json",
     },
   })
@@ -72,17 +68,18 @@ async function getState(supabase: ReturnType<typeof createClient>, articleId: st
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS })
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405)
+  const cors = corsHeadersForRequest(req)
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors })
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405, cors)
 
   const url = Deno.env.get("SUPABASE_URL")
   const anon = Deno.env.get("SUPABASE_ANON_KEY")
   const authHeader = req.headers.get("Authorization")
   if (!url || !anon) {
-    return json({ error: "missing_function_env" }, 500)
+    return json({ error: "missing_function_env" }, 500, cors)
   }
   if (!authHeader) {
-    return json({ error: "not_authenticated" }, 401)
+    return json({ error: "not_authenticated" }, 401, cors)
   }
 
   const supabase = createClient(url, anon, {
@@ -95,20 +92,20 @@ Deno.serve(async (req) => {
     error: userErr,
   } = await supabase.auth.getUser()
   if (userErr || !user) {
-    return json({ error: "not_authenticated" }, 401)
+    return json({ error: "not_authenticated" }, 401, cors)
   }
 
   let body: RequestBody
   try {
     body = (await req.json()) as RequestBody
   } catch {
-    return json({ error: "invalid_json" }, 400)
+    return json({ error: "invalid_json" }, 400, cors)
   }
 
   const action = body.action
   const articleId = body.articleId?.trim()
   if (!action || !articleId) {
-    return json({ error: "action_and_articleId_required" }, 400)
+    return json({ error: "action_and_articleId_required" }, 400, cors)
   }
 
   try {
@@ -119,7 +116,10 @@ Deno.serve(async (req) => {
         .eq("article_id", articleId)
         .eq("user_id", user.id)
         .maybeSingle()
-      if (selectErr) return json({ error: selectErr.message }, 400)
+      if (selectErr) {
+        logPostgrestError("upvote_select", selectErr)
+        return json(E.db, 400, cors)
+      }
 
       if (existing) {
         const { error } = await supabase
@@ -127,10 +127,16 @@ Deno.serve(async (req) => {
           .delete()
           .eq("article_id", articleId)
           .eq("user_id", user.id)
-        if (error) return json({ error: error.message }, 400)
+        if (error) {
+          logPostgrestError("upvote_delete", error)
+          return json(E.db, 400, cors)
+        }
       } else {
         const { error } = await supabase.from("article_upvotes").insert({ article_id: articleId, user_id: user.id })
-        if (error) return json({ error: error.message }, 400)
+        if (error) {
+          logPostgrestError("upvote_insert", error)
+          return json(E.db, 400, cors)
+        }
       }
       await supabase.from("engagement_events").insert({
         article_id: articleId,
@@ -145,7 +151,10 @@ Deno.serve(async (req) => {
         .eq("article_id", articleId)
         .eq("user_id", user.id)
         .maybeSingle()
-      if (selectErr) return json({ error: selectErr.message }, 400)
+      if (selectErr) {
+        logPostgrestError("bookmark_select", selectErr)
+        return json(E.db, 400, cors)
+      }
 
       if (existing) {
         const { error } = await supabase
@@ -153,12 +162,18 @@ Deno.serve(async (req) => {
           .delete()
           .eq("article_id", articleId)
           .eq("user_id", user.id)
-        if (error) return json({ error: error.message }, 400)
+        if (error) {
+          logPostgrestError("bookmark_delete", error)
+          return json(E.db, 400, cors)
+        }
       } else {
         const { error } = await supabase
           .from("article_bookmarks")
           .insert({ article_id: articleId, user_id: user.id })
-        if (error) return json({ error: error.message }, 400)
+        if (error) {
+          logPostgrestError("bookmark_insert", error)
+          return json(E.db, 400, cors)
+        }
       }
       await supabase.from("engagement_events").insert({
         article_id: articleId,
@@ -169,7 +184,7 @@ Deno.serve(async (req) => {
     } else if (action === "comment_create") {
       const raw = body.content ?? ""
       const content = sanitizeContent(raw)
-      if (!content) return json({ error: "comment_content_required" }, 400)
+      if (!content) return json({ error: "comment_content_required" }, 400, cors)
 
       const locale = body.locale === "en" ? "en" : "ko"
       const parentId = body.parentId ?? null
@@ -181,7 +196,10 @@ Deno.serve(async (req) => {
           .eq("id", parentId)
           .eq("article_id", articleId)
           .maybeSingle()
-        if (parentErr) return json({ error: parentErr.message }, 400)
+        if (parentErr) {
+          logPostgrestError("comment_parent", parentErr)
+          return json(E.db, 400, cors)
+        }
         depth = (parent?.depth ?? 0) + 1
       }
 
@@ -190,7 +208,11 @@ Deno.serve(async (req) => {
         .select("username, display_name, display_name_en, avatar_url, level, is_verified")
         .eq("id", user.id)
         .maybeSingle()
-      if (profileErr || !profile) return json({ error: profileErr?.message ?? "profile_not_found" }, 400)
+      if (profileErr) {
+        logPostgrestError("comment_profile", profileErr)
+        return json(E.db, 400, cors)
+      }
+      if (!profile) return json({ error: "profile_not_found" }, 400, cors)
 
       const { data: inserted, error: insertErr } = await supabase
         .from("comments")
@@ -213,7 +235,10 @@ Deno.serve(async (req) => {
         .select("*")
         .single()
 
-      if (insertErr) return json({ error: insertErr.message }, 400)
+      if (insertErr) {
+        logPostgrestError("comment_insert", insertErr)
+        return json(E.db, 400, cors)
+      }
 
       await supabase.from("engagement_events").insert({
         article_id: articleId,
@@ -223,7 +248,7 @@ Deno.serve(async (req) => {
       })
     } else if (action === "comment_delete") {
       const commentId = body.commentId?.trim()
-      if (!commentId) return json({ error: "comment_id_required" }, 400)
+      if (!commentId) return json({ error: "comment_id_required" }, 400, cors)
 
       const { data: existing, error: existingErr } = await supabase
         .from("comments")
@@ -231,20 +256,23 @@ Deno.serve(async (req) => {
         .eq("id", commentId)
         .eq("article_id", articleId)
         .maybeSingle()
-      if (existingErr) return json({ error: existingErr.message }, 400)
-      if (!existing) return json({ error: "comment_not_found" }, 404)
+      if (existingErr) {
+        logPostgrestError("comment_delete_select", existingErr)
+        return json(E.db, 400, cors)
+      }
+      if (!existing) return json({ error: "comment_not_found" }, 404, cors)
 
       if (!existing.author_profile_id || existing.author_profile_id !== user.id) {
-        return json({ error: "comment_delete_forbidden" }, 403)
+        return json({ error: "comment_delete_forbidden" }, 403, cors)
       }
 
       const createdAtMs = Date.parse(existing.created_at)
       if (Number.isNaN(createdAtMs)) {
-        return json({ error: "comment_invalid_created_at" }, 400)
+        return json({ error: "comment_invalid_created_at" }, 400, cors)
       }
       const elapsedMs = Date.now() - createdAtMs
       if (elapsedMs > 30 * 60 * 1000) {
-        return json({ error: "comment_delete_window_expired" }, 403)
+        return json({ error: "comment_delete_window_expired" }, 403, cors)
       }
 
       const { error: delErr } = await supabase
@@ -252,7 +280,10 @@ Deno.serve(async (req) => {
         .delete()
         .eq("id", commentId)
         .eq("article_id", articleId)
-      if (delErr) return json({ error: delErr.message }, 400)
+      if (delErr) {
+        logPostgrestError("comment_delete", delErr)
+        return json(E.db, 400, cors)
+      }
 
       await supabase.from("engagement_events").insert({
         article_id: articleId,
@@ -261,13 +292,13 @@ Deno.serve(async (req) => {
         payload: { comment_id: commentId },
       })
     } else if (action !== "state") {
-      return json({ error: "unsupported_action" }, 400)
+      return json({ error: "unsupported_action" }, 400, cors)
     }
 
     const state = await getState(supabase, articleId, user.id)
-    return json({ ok: true, action, ...state })
+    return json({ ok: true, action, ...state }, 200, cors)
   } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown_error"
-    return json({ error: message }, 500)
+    console.error("[engagement] unhandled", error)
+    return json(E.internal, 500, cors)
   }
 })

@@ -26,6 +26,7 @@ import {
   toggleArticleUpvote,
 } from "@/lib/engagementApi";
 import { requestAiAssistant } from "@/lib/aiApi";
+import { sanitizePostBodyHtml } from "@/lib/sanitizePostHtml";
 import { formatPostedAgo } from "@/lib/postMeta";
 import {
   ArrowUp, MessageSquare, Bookmark, Clock, Eye, Share2,
@@ -754,14 +755,16 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
               ref={contentRef}
               className={`prose-keyp transition-opacity duration-150 ${langTransitioning ? 'opacity-0' : 'opacity-100'}`}
               dangerouslySetInnerHTML={{
-                __html: (lang === 'ko' ? post.content : post.contentEn)
-                  .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-                  .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-                  .replace(/\n\n/g, '</p><p>')
-                  .replace(/^/, '<p>')
-                  .replace(/$/, '</p>')
-                  .replace(/<p><h/g, '<h')
-                  .replace(/<\/h([23])><\/p>/g, '</h$1>')
+                __html: sanitizePostBodyHtml(
+                  (lang === 'ko' ? post.content : post.contentEn)
+                    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/^/, '<p>')
+                    .replace(/$/, '</p>')
+                    .replace(/<p><h/g, '<h')
+                    .replace(/<\/h([23])><\/p>/g, '</h$1>'),
+                ),
               }}
             />
 

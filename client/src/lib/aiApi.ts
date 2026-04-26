@@ -1,6 +1,25 @@
+import { supabase } from "@/lib/supabase";
+
 type AiLang = "ko" | "en";
 
 type AssistantHistory = Array<{ role: "user" | "assistant"; text: string }>;
+
+async function authHeadersForAi(): Promise<Record<string, string> | null> {
+  const { data } = await supabase.auth.getSession();
+  let session = data.session;
+  if (!session) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    session = refreshed.session;
+  }
+  if (session?.expires_at && session.expires_at * 1000 <= Date.now() + 30_000) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    session = refreshed.session;
+  }
+  if (!session?.access_token) {
+    return null;
+  }
+  return { Authorization: `Bearer ${session.access_token}` };
+}
 
 /**
  * Origin only (e.g. https://api.example.com). Do not include /api/ai or /translate —
@@ -22,10 +41,17 @@ function aiApiUrl(path: "summary" | "assistant" | "translate"): string {
   return `${prefix}/${path}`;
 }
 
-async function postJson<T>(url: string, payload: unknown): Promise<T> {
+async function postJson<T>(url: string, payload: unknown, auth: Record<string, string> | null): Promise<T> {
+  if (!auth && !import.meta.env.DEV) {
+    throw new Error("Sign in to use the writing assistant and translation features.");
+  }
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (auth) {
+    Object.assign(headers, auth);
+  }
   const resp = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(payload),
   });
 
@@ -38,7 +64,8 @@ async function postJson<T>(url: string, payload: unknown): Promise<T> {
 }
 
 export async function requestAiSummary(input: { content: string; lang: AiLang }) {
-  return postJson<{ summary: string }>(aiApiUrl("summary"), input);
+  const auth = await authHeadersForAi();
+  return postJson<{ summary: string }>(aiApiUrl("summary"), input, auth);
 }
 
 export async function requestAiAssistant(input: {
@@ -48,7 +75,8 @@ export async function requestAiAssistant(input: {
   lang: AiLang;
   history: AssistantHistory;
 }) {
-  return postJson<{ reply: string }>(aiApiUrl("assistant"), input);
+  const auth = await authHeadersForAi();
+  return postJson<{ reply: string }>(aiApiUrl("assistant"), input, auth);
 }
 
 export async function requestAiTranslation(input: {
@@ -56,5 +84,6 @@ export async function requestAiTranslation(input: {
   sourceLang: AiLang;
   targetLang: AiLang;
 }) {
-  return postJson<{ translatedText: string }>(aiApiUrl("translate"), input);
+  const auth = await authHeadersForAi();
+  return postJson<{ translatedText: string }>(aiApiUrl("translate"), input, auth);
 }
