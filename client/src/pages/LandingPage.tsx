@@ -180,9 +180,8 @@ const TREND_KEYWORD_BRIEFS = [
 export default function LandingPage() {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang } = useLanguage();
-  const [selectedTrendKeyword, setSelectedTrendKeyword] = useState<string>(TREND_KEYWORD_BRIEFS[0]?.keyword ?? "");
-  /** Large desktop + real hover (not most tablets / phones) → show definition on hover; else click. */
-  const [trendKeywordByHover, setTrendKeywordByHover] = useState(false);
+  /** Rotates the trend definition panel every 7s (no click/hover to change). */
+  const [trendActiveIndex, setTrendActiveIndex] = useState(0);
   const [isHeroCtaHovered, setIsHeroCtaHovered] = useState(false);
   const [heroCtaButtonWidth, setHeroCtaButtonWidth] = useState(0);
   const [heroCtaContainerWidth, setHeroCtaContainerWidth] = useState(0);
@@ -201,18 +200,12 @@ export default function LandingPage() {
   });
 
   useEffect(() => {
-    const query =
-      typeof window !== "undefined"
-        ? window.matchMedia(
-            /* lg+ and real mouse/trackpad, not touch-primary tablets */
-            "(min-width: 1024px) and (hover: hover) and (pointer: fine)",
-          )
-        : null;
-    if (!query) return;
-    const apply = () => setTrendKeywordByHover(query.matches);
-    apply();
-    query.addEventListener("change", apply);
-    return () => query.removeEventListener("change", apply);
+    const n = TREND_KEYWORD_BRIEFS.length;
+    if (n < 2) return;
+    const t = window.setInterval(() => {
+      setTrendActiveIndex((i) => (i + 1) % n);
+    }, 7000);
+    return () => window.clearInterval(t);
   }, []);
 
   const content = {
@@ -294,7 +287,7 @@ export default function LandingPage() {
   const trendHeadingColor = theme === "light" ? LIGHT_THEME_TREND_COLOR_2026 : CORE_COLOR_2026;
   const trendKeywordColor = theme === "light" ? LIGHT_THEME_TREND_COLOR_2026 : CORE_TEXT_COLOR_2026;
   const selectedTrendArticle =
-    TREND_KEYWORD_BRIEFS.find((item) => item.keyword === selectedTrendKeyword) ?? TREND_KEYWORD_BRIEFS[0];
+    TREND_KEYWORD_BRIEFS[trendActiveIndex % TREND_KEYWORD_BRIEFS.length] ?? TREND_KEYWORD_BRIEFS[0];
   const heroCtaPullOffset = Math.max(0, (heroCtaContainerWidth - heroCtaButtonWidth) / 2);
   const statsSectionRef = useRef<HTMLElement | null>(null);
   const [isStatsVisible, setIsStatsVisible] = useState(false);
@@ -841,36 +834,28 @@ export default function LandingPage() {
           className="border bg-card p-6 md:p-8 mb-8"
           style={{ borderColor: "rgba(245, 220, 74, 0.45)" }}
         >
-          <div className="flex flex-wrap items-start gap-2.5">
-            {TREND_KEYWORD_BRIEFS.map((item) => (
-              <button
+          <div className="flex flex-wrap items-start gap-2.5" role="list" aria-label={lang === "ko" ? "트렌드 키워드" : "Trend keywords"}>
+            {TREND_KEYWORD_BRIEFS.map((item, index) => (
+              <div
                 key={item.keyword}
-                type="button"
-                onClick={
-                  trendKeywordByHover ? undefined : () => setSelectedTrendKeyword(item.keyword)
-                }
-                onMouseEnter={
-                  trendKeywordByHover ? () => setSelectedTrendKeyword(item.keyword) : undefined
-                }
-                onFocus={trendKeywordByHover ? () => setSelectedTrendKeyword(item.keyword) : undefined}
+                role="listitem"
+                {...(index === trendActiveIndex ? { "aria-current": "true" as const } : {})}
                 className={`relative z-20 inline-flex h-auto max-w-full min-w-0 shrink-0 items-center justify-center self-start border px-3 py-1.5 text-left text-lg font-black leading-tight tracking-tight transition-all duration-200 md:text-2xl ${
-                  selectedTrendKeyword === item.keyword
-                    ? "origin-center scale-[1.02] shadow-sm"
-                    : "hover:-translate-y-0.5"
+                  index === trendActiveIndex ? "origin-center scale-[1.02] shadow-sm" : ""
                 }`}
                 style={{
                   fontFamily: 'Noto Sans KR',
                   letterSpacing: '-0.02em',
                   borderColor: "rgba(245, 220, 74, 0.45)",
                   backgroundColor:
-                    selectedTrendKeyword === item.keyword
+                    index === trendActiveIndex
                       ? "rgba(245, 220, 74, 0.26)"
                       : "rgba(245, 220, 74, 0.14)",
                   color: trendKeywordColor,
                 }}
               >
                 {lang === "ko" ? item.keyword : item.keywordEn}
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -878,7 +863,9 @@ export default function LandingPage() {
         <div className="border-l border-t border-border">
           <article
             key={selectedTrendArticle.keyword}
-            className="cursor-default border-r border-b border-border p-6 md:p-7 transition-all duration-300 ease-out hover:bg-accent/40"
+            className="cursor-default border-r border-b border-border p-6 md:p-7 transition-all duration-300 ease-out"
+            aria-live="polite"
+            aria-atomic="true"
           >
             <div className="animate-fade-in-up" key={selectedTrendArticle.keyword}>
               <h3
