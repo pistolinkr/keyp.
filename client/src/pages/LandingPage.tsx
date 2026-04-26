@@ -692,7 +692,7 @@ export default function LandingPage() {
         }}
       >
       {/* ─── LANDING HEADER ─── */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-[4.5rem] border-b border-border keyp-navbar">
+      <header className="fixed top-0 left-0 right-0 z-50 h-[4.5rem] keyp-navbar">
         <div className="max-w-6xl mx-auto w-full h-full px-6 flex items-center gap-4">
           <div className="flex items-center">
             <img src="/logo.png" alt="Keyp. logo" className="h-9 w-auto object-contain" />

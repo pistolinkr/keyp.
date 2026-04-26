@@ -100,7 +100,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* ─── TOP HEADER ─── */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-[4.5rem] border-b border-border keyp-navbar flex items-center px-4 gap-4">
+      <header className="fixed top-0 left-0 right-0 z-50 h-[4.5rem] keyp-navbar flex items-center px-4 gap-4">
         {/* Mobile menu toggle */}
         <button
           className="lg:hidden p-1.5 hover:bg-accent transition-colors"
