@@ -24,8 +24,9 @@ function avatarFallbackLetter(email: string | null | undefined): string {
   return e.charAt(0).toLocaleUpperCase();
 }
 
-const AVATAR_PREVIEW_MOBILE_PX = 96;
-const SM_MIN_PX = 640;
+const AVATAR_PREVIEW_MIN_PX = 40;
+/** Before first measure (loader or layout). */
+const AVATAR_PREVIEW_FALLBACK_PX = 96;
 
 const Q_USAGE = "onboarding_usage";
 const Q_INTERESTS = "onboarding_interests";
@@ -63,19 +64,23 @@ export default function Custom() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const avatarControlsRef = useRef<HTMLDivElement | null>(null);
-  const [avatarPreviewPx, setAvatarPreviewPx] = useState(AVATAR_PREVIEW_MOBILE_PX);
+  const [avatarPreviewPx, setAvatarPreviewPx] = useState(AVATAR_PREVIEW_FALLBACK_PX);
 
   useLayoutEffect(() => {
     const el = avatarControlsRef.current;
     if (!el) return;
 
-    const read = () => {
-      if (typeof window === "undefined" || window.innerWidth < SM_MIN_PX) {
-        setAvatarPreviewPx(AVATAR_PREVIEW_MOBILE_PX);
+    const read = (tries = 0) => {
+      const node = avatarControlsRef.current;
+      if (!node) return;
+      const h = Math.round(node.getBoundingClientRect().height);
+      if (h < 1 && tries < 10) {
+        requestAnimationFrame(() => read(tries + 1));
         return;
       }
-      const h = Math.round(el.getBoundingClientRect().height);
-      setAvatarPreviewPx(Math.max(40, h));
+      if (h < 1) return;
+      // Square side = div.space-y-2.flex-1.min-w-0 height (label + button column).
+      setAvatarPreviewPx(Math.max(AVATAR_PREVIEW_MIN_PX, h));
     };
 
     const ro = new ResizeObserver(read);
@@ -87,7 +92,7 @@ export default function Custom() {
       ro.disconnect();
       window.removeEventListener("resize", read);
     };
-  }, []);
+  }, [bootLoading, profileOnboarding.loading, profileOnboarding.isOnboarded, success]);
 
   useEffect(() => {
     return () => {
