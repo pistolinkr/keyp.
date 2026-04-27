@@ -312,9 +312,10 @@ export default function Custom() {
             </h2>
 
             <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
-              <div className="shrink-0 flex justify-center sm:justify-start self-stretch sm:min-h-0">
+              {/* [container-type:size] + w-[100cqh]: width matches column height (true square on sm+). */}
+              <div className="shrink-0 self-stretch flex justify-center sm:justify-start min-h-0 h-full [container-type:size] w-fit max-w-full sm:min-w-0">
                 <div
-                  className="w-24 h-24 sm:h-full sm:w-auto sm:aspect-square sm:max-w-full border border-border overflow-hidden flex items-center justify-center bg-muted text-2xl font-bold font-mono text-foreground/90"
+                  className="w-24 h-24 sm:h-full sm:w-[100cqh] sm:max-w-full sm:shrink-0 box-border border border-border overflow-hidden flex items-center justify-center bg-muted text-2xl font-bold font-mono text-foreground/90"
                   aria-hidden={!!avatarPreviewUrl}
                 >
                   {avatarPreviewUrl ? (
