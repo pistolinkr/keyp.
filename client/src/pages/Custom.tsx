@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
 import {
   avatarUploadErrorMessage,
   ensureMyProfileRow,
@@ -18,6 +17,12 @@ import {
   upsertOnboardingSurveyAnswers,
 } from "@/lib/contentApi";
 import { isSupabaseConfigured } from "@/lib/supabase";
+
+function avatarFallbackLetter(email: string | null | undefined): string {
+  const e = email?.trim();
+  if (!e) return "?";
+  return e.charAt(0).toLocaleUpperCase();
+}
 
 const Q_USAGE = "onboarding_usage";
 const Q_INTERESTS = "onboarding_interests";
@@ -306,15 +311,20 @@ export default function Custom() {
               {lang === "ko" ? "프로필" : "Profile"}
             </h2>
 
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <div className="shrink-0">
-                <img
-                  src={avatarPreviewUrl || PLACEHOLDER_AVATAR}
-                  alt=""
-                  className="w-24 h-24 object-cover border border-border"
-                />
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
+              <div className="shrink-0 flex justify-center sm:justify-start self-stretch sm:min-h-0">
+                <div
+                  className="w-24 h-24 sm:h-full sm:w-auto sm:aspect-square sm:max-w-full border border-border overflow-hidden flex items-center justify-center bg-muted text-2xl font-bold font-mono text-foreground/90"
+                  aria-hidden={!!avatarPreviewUrl}
+                >
+                  {avatarPreviewUrl ? (
+                    <img src={avatarPreviewUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{avatarFallbackLetter(user?.email)}</span>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2 flex-1">
+              <div className="space-y-2 flex-1 min-w-0">
                 <Label htmlFor="onboarding-avatar" className="font-mono text-xs text-muted-foreground">
                   {lang === "ko" ? "프로필 이미지" : "Profile image"}
                 </Label>
