@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +23,9 @@ function avatarFallbackLetter(email: string | null | undefined): string {
   if (!e) return "?";
   return e.charAt(0).toLocaleUpperCase();
 }
+
+const AVATAR_PREVIEW_MOBILE_PX = 96;
+const SM_MIN_PX = 640;
 
 const Q_USAGE = "onboarding_usage";
 const Q_INTERESTS = "onboarding_interests";
@@ -59,6 +62,32 @@ export default function Custom() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const avatarControlsRef = useRef<HTMLDivElement | null>(null);
+  const [avatarPreviewPx, setAvatarPreviewPx] = useState(AVATAR_PREVIEW_MOBILE_PX);
+
+  useLayoutEffect(() => {
+    const el = avatarControlsRef.current;
+    if (!el) return;
+
+    const read = () => {
+      if (typeof window === "undefined" || window.innerWidth < SM_MIN_PX) {
+        setAvatarPreviewPx(AVATAR_PREVIEW_MOBILE_PX);
+        return;
+      }
+      const h = Math.round(el.getBoundingClientRect().height);
+      setAvatarPreviewPx(Math.max(40, h));
+    };
+
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    read();
+
+    window.addEventListener("resize", read);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", read);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -311,11 +340,14 @@ export default function Custom() {
               {lang === "ko" ? "프로필" : "Profile"}
             </h2>
 
-            <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
-              {/* [container-type:size] + w-[100cqh]: width matches column height (true square on sm+). */}
-              <div className="shrink-0 self-stretch flex justify-center sm:justify-start min-h-0 h-full [container-type:size] w-fit max-w-full sm:min-w-0">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
+              <div className="shrink-0 flex justify-center sm:justify-start">
                 <div
-                  className="w-24 h-24 sm:h-full sm:w-[100cqh] sm:max-w-full sm:shrink-0 box-border border border-border overflow-hidden flex items-center justify-center bg-muted text-2xl font-bold font-mono text-foreground/90"
+                  className="border border-border overflow-hidden flex items-center justify-center bg-muted text-2xl font-bold font-mono text-foreground/90"
+                  style={{
+                    width: avatarPreviewPx,
+                    height: avatarPreviewPx,
+                  }}
                   aria-hidden={!!avatarPreviewUrl}
                 >
                   {avatarPreviewUrl ? (
@@ -325,7 +357,7 @@ export default function Custom() {
                   )}
                 </div>
               </div>
-              <div className="space-y-2 flex-1 min-w-0">
+              <div ref={avatarControlsRef} className="space-y-2 flex-1 min-w-0">
                 <Label htmlFor="onboarding-avatar" className="font-mono text-xs text-muted-foreground">
                   {lang === "ko" ? "프로필 이미지" : "Profile image"}
                 </Label>
