@@ -292,7 +292,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   alt={userDisplayName}
                   boxClassName="w-12 h-12"
                   textClassName="text-lg"
-                  className="hover:border-primary transition-colors"
+                  className="hover:border-primary transition-colors rounded-bl-[25px]"
                 />
               </button>
             </Link>
