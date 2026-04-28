@@ -32,7 +32,7 @@ export function ProfileAvatar({
       {showImg ? (
         <img src={imageUrl!.trim()} alt={alt} className="h-full w-full object-cover" />
       ) : (
-        <span className={textClassName} aria-hidden>
+        <span className={`${textClassName} leading-none`.trim()} aria-hidden>
           {letter}
         </span>
       )}

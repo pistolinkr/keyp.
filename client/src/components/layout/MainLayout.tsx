@@ -278,11 +278,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </div>
           </nav>
 
-          {/* Sidebar footer */}
-          <div className="p-3 border-t border-border flex items-stretch gap-3">
-            <Link href={profileHref}>
+          {/* Sidebar footer — equal padding; squares aligned; centered icon */}
+          <div className="border-t border-border flex items-center gap-3 px-3 py-3">
+            <Link href={profileHref} className="shrink-0 inline-flex">
               <button
-                className="shrink-0 hover:opacity-90 transition-opacity"
+                className="p-0 m-0 border-0 bg-transparent rounded-none inline-flex hover:opacity-90 transition-opacity"
                 title={lang === "ko" ? "프로필 보기" : "View profile"}
                 type="button"
               >
@@ -298,30 +298,31 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </Link>
 
             {/* User XP */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 py-0.5">
+              <div className="flex items-center gap-2">
                 <span className="text-xs font-medium truncate">
                   {userDisplayName}
                 </span>
-                <span className="font-mono text-xs text-primary">
+                <span className="font-mono text-xs text-primary shrink-0">
                   {lang === "ko" ? `Lv.${sidebarLevel}` : `Lv.${sidebarLevel}`}
                 </span>
               </div>
-              <div className="w-full h-1 bg-muted overflow-hidden">
+              <div className="w-full h-1 bg-muted overflow-hidden shrink-0">
                 <div
                   className="h-full bg-primary transition-all duration-500"
                   style={{ width: `${(sidebarXp % 1000) / 10}%` }}
                 />
               </div>
-              <div className="flex justify-between mt-1">
+              <div className="flex justify-between gap-2">
                 <span className="font-mono text-xs text-muted-foreground">
                   {lang === "ko" ? `${sidebarXp} XP` : `${sidebarXp} XP`}
                 </span>
-                <span className="font-mono text-xs text-muted-foreground">Keyp.</span>
+                <span className="font-mono text-xs text-muted-foreground shrink-0">Keyp.</span>
               </div>
             </div>
             <button
-              className="w-10 h-10 shrink-0 border border-border hover:border-primary transition-colors flex items-center justify-center"
+              type="button"
+              className="h-12 w-12 shrink-0 p-0 m-0 border border-border bg-transparent rounded-none hover:border-primary transition-colors inline-flex items-center justify-center"
               onClick={async () => {
                 try {
                   await signOut();
@@ -332,7 +333,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               }}
               title={lang === "ko" ? "로그아웃" : "Sign out"}
             >
-              <LogOut size={14} />
+              <LogOut size={14} className="shrink-0" strokeWidth={2} aria-hidden />
             </button>
           </div>
         </aside>
