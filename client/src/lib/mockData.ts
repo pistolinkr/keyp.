@@ -123,16 +123,12 @@ export interface Comment {
   replies?: Comment[];
 }
 
-/** Avatar used when no user or profile image is available. */
-export const PLACEHOLDER_AVATAR =
-  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=80&h=80&fit=crop";
-
 const UNKNOWN_AUTHOR: User = {
   id: "unknown",
   username: "unknown",
   displayName: "알 수 없음",
   displayNameEn: "Unknown",
-  avatar: PLACEHOLDER_AVATAR,
+  avatar: "",
   bio: "",
   bioEn: "",
   level: 0,
@@ -176,8 +172,11 @@ const categoryIdByLabel = new Map<string, string>(
   ]),
 );
 
-const getFeaturedImage = (post: Post) =>
-  post.author.avatar.replace("w=80&h=80", "w=1280&h=720");
+const getFeaturedImage = (post: Post) => {
+  const a = post.author.avatar?.trim();
+  if (!a) return "";
+  return a.replace("w=80&h=80", "w=1280&h=720");
+};
 
 const cmsArticles: CmsArticleRecord[] = articleSeedPosts.map((post) => ({
   id: post.id,

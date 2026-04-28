@@ -10,6 +10,7 @@ import { trendingTopics } from "@/lib/mockData";
 import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
 import { formatPostedAgo } from "@/lib/postMeta";
 import type { Post, User } from "@/lib/mockData";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Search, X, Clock, Eye, ArrowUp, User as UserIcon, FileText, TrendingUp } from "lucide-react";
 
 interface SearchPageProps {
@@ -243,7 +244,13 @@ export default function SearchPage({ query: initialQuery = '' }: SearchPageProps
                       </p>
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <div className="flex items-center gap-1.5">
-                          <img src={post.author.avatar} alt={post.author.displayName} className="w-4 h-4 object-cover border border-border" />
+                          <ProfileAvatar
+                            imageUrl={post.author.avatar}
+                            fallbackSource={post.author.username}
+                            alt={post.author.displayName}
+                            boxClassName="w-4 h-4"
+                            textClassName="text-[9px]"
+                          />
                           <span className="font-mono text-xs">
                             {lang === 'ko' ? post.author.displayName : post.author.displayNameEn}
                           </span>
@@ -281,7 +288,13 @@ export default function SearchPage({ query: initialQuery = '' }: SearchPageProps
                       className="flex items-center gap-4 border-b border-border py-4 hover:bg-accent/30 transition-colors cursor-pointer px-2 -mx-2 animate-fade-in-up opacity-0"
                       style={{ animationDelay: `${i * 0.04}s`, animationFillMode: 'forwards' }}
                     >
-                      <img src={user.avatar} alt={user.displayName} className="w-10 h-10 object-cover border border-border" />
+                      <ProfileAvatar
+                        imageUrl={user.avatar}
+                        fallbackSource={user.username}
+                        alt={user.displayName}
+                        boxClassName="w-10 h-10"
+                        textClassName="text-base"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="font-semibold text-sm hover:text-primary transition-colors">

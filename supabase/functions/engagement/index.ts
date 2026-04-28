@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
           author_username: profile.username,
           author_display_name: profile.display_name,
           author_display_name_en: profile.display_name_en || profile.display_name,
-          author_avatar_url: profile.avatar_url || "/placeholder.svg",
+          author_avatar_url: profile.avatar_url?.trim() || "",
           author_level: profile.level ?? 1,
           author_is_verified: profile.is_verified ?? false,
           content_ko: locale === "ko" ? content : "",

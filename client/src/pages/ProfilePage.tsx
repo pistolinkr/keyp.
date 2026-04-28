@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
 import type { User as UserType, Post as PostType } from "@/lib/mockData";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import {
   ensureMyProfileRow,
   getCommentsByAuthorUsername,
@@ -202,8 +202,9 @@ export default function ProfilePage({ username }: ProfilePageProps) {
           authUser.email?.split("@")[0] ||
           "User",
         avatar:
-          (typeof authUser.userMetadata?.avatar_url === "string" && authUser.userMetadata.avatar_url) ||
-          PLACEHOLDER_AVATAR,
+          (typeof authUser.userMetadata?.avatar_url === "string" &&
+            authUser.userMetadata.avatar_url.trim()) ||
+          "",
         bio:
           (typeof authUser.userMetadata?.bio === "string" && authUser.userMetadata.bio) ||
           "KEYP. 사용자 프로필입니다.",
@@ -393,11 +394,19 @@ export default function ProfilePage({ username }: ProfilePageProps) {
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
                   <div className="relative shrink-0">
-                    <img
-                      src={avatarPreviewUrl || user.avatar}
-                      alt=""
-                      className="w-16 h-16 object-cover border-2 border-border"
-                    />
+                    {avatarPreviewUrl ? (
+                      <div className="w-16 h-16 border-2 border-border overflow-hidden">
+                        <img src={avatarPreviewUrl} alt="" className="h-full w-full object-cover" />
+                      </div>
+                    ) : (
+                      <ProfileAvatar
+                        imageUrl={user.avatar}
+                        fallbackSource={authUser?.email ?? user.username}
+                        alt={lang === "ko" ? user.displayName : user.displayNameEn}
+                        boxClassName="w-16 h-16"
+                        textClassName="text-xl"
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <Label htmlFor="profile-avatar-input" className="font-mono text-xs text-muted-foreground">
@@ -524,10 +533,16 @@ export default function ProfilePage({ username }: ProfilePageProps) {
                 {/* Avatar */}
                 <div className="flex items-start gap-4 mb-5">
                   <div className="relative">
-                    <img
-                      src={user.avatar}
-                      alt={user.displayName}
-                      className="w-16 h-16 object-cover border-2 border-border"
+                    <ProfileAvatar
+                      imageUrl={user.avatar}
+                      fallbackSource={
+                        isOwnProfile && authUser?.email
+                          ? authUser.email
+                          : user.username
+                      }
+                      alt={lang === "ko" ? user.displayName : user.displayNameEn}
+                      boxClassName="w-16 h-16"
+                      textClassName="text-xl"
                     />
                     {user.isVerified && (
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary flex items-center justify-center">

@@ -2,7 +2,6 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   categoryCatalog,
   posts as mockPosts,
-  PLACEHOLDER_AVATAR,
   type Post,
   type Season,
   type Comment,
@@ -488,7 +487,7 @@ function mapProfileRowToUser(row: ProfileRow): User {
     username: row.username,
     displayName: row.display_name,
     displayNameEn: row.display_name_en,
-    avatar: row.avatar_url ?? PLACEHOLDER_AVATAR,
+    avatar: row.avatar_url?.trim() ?? "",
     bio: row.bio ?? "",
     bioEn: row.bio_en ?? "",
     level: row.level,

@@ -8,8 +8,8 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { PLACEHOLDER_AVATAR } from "@/lib/mockData";
 import type { Comment, Post } from "@/lib/mockData";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import {
   getPostById,
   getCommentsForPost,
@@ -49,16 +49,16 @@ import {
 function useCommentComposerIdentity() {
   const { user } = useAuth();
   const md = user?.userMetadata;
-  const avatar =
-    typeof md?.avatar_url === "string"
-      ? md.avatar_url
-      : PLACEHOLDER_AVATAR;
+  const avatarUrl =
+    typeof md?.avatar_url === "string" && md.avatar_url.trim()
+      ? md.avatar_url.trim()
+      : "";
   const displayName =
     (typeof md?.full_name === "string" && md.full_name) ||
     (typeof md?.name === "string" && md.name) ||
     user?.email?.split("@")[0] ||
     "Guest";
-  return { avatar, displayName };
+  return { avatarUrl, displayName, email: user?.email ?? null };
 }
 
 /** Comments store text in only one locale column; fall back so the other party's message is visible. */
@@ -84,7 +84,8 @@ function CommentItem({
   onDeleteComment: (commentId: string) => Promise<void>;
   depth?: number;
 }) {
-  const { avatar: composerAvatar, displayName: composerName } = useCommentComposerIdentity();
+  const { avatarUrl: composerAvatarUrl, displayName: composerName, email: composerEmail } =
+    useCommentComposerIdentity();
   const [upvoted, setUpvoted] = useState(false);
   const [showReply, setShowReply] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -115,10 +116,13 @@ function CommentItem({
         {/* Comment header */}
         <div className="flex items-center gap-2 mb-2">
           <Link href={`/profile/${comment.author.username}`}>
-            <img
-              src={comment.author.avatar}
+            <ProfileAvatar
+              imageUrl={comment.author.avatar}
+              fallbackSource={comment.author.username}
               alt={comment.author.displayName}
-              className="w-6 h-6 object-cover border border-border cursor-pointer"
+              boxClassName="w-6 h-6"
+              textClassName="text-xs"
+              className="cursor-pointer"
             />
           </Link>
           <Link href={`/profile/${comment.author.username}`}>
@@ -192,10 +196,13 @@ function CommentItem({
             {/* Reply input */}
             {showReply && (
               <div className="mt-3 flex gap-2">
-                <img
-                  src={composerAvatar}
+                <ProfileAvatar
+                  imageUrl={composerAvatarUrl}
+                  fallbackSource={composerEmail}
                   alt={composerName}
-                  className="w-6 h-6 object-cover border border-border shrink-0 mt-0.5"
+                  boxClassName="w-6 h-6"
+                  textClassName="text-xs"
+                  className="shrink-0 mt-0.5"
                 />
                 <div className="flex-1 flex gap-2">
                   <input
@@ -411,7 +418,8 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
   const [post, setPost] = useState<Post | null>(null);
   const [postComments, setPostComments] = useState<Comment[]>([]);
   const [detailLoading, setDetailLoading] = useState(true);
-  const { avatar: composerAvatar, displayName: composerDisplayName } = useCommentComposerIdentity();
+  const { avatarUrl: composerAvatarUrl, displayName: composerDisplayName, email: composerEmail } =
+    useCommentComposerIdentity();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTitleInput, setDeleteTitleInput] = useState("");
   const [deletePhraseInput, setDeletePhraseInput] = useState("");
@@ -714,10 +722,12 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
               <div className="flex items-center gap-4 pb-6 border-b border-border">
                 <Link href={`/profile/${post.author.username}`}>
                   <div className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
-                    <img
-                      src={post.author.avatar}
+                    <ProfileAvatar
+                      imageUrl={post.author.avatar}
+                      fallbackSource={post.author.username}
                       alt={post.author.displayName}
-                      className="w-9 h-9 object-cover border border-border"
+                      boxClassName="w-9 h-9"
+                      textClassName="text-sm"
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
@@ -1007,10 +1017,13 @@ export default function PostDetailPage({ id }: PostDetailPageProps) {
               {/* Comment input */}
               {!post.isReadOnly ? (
                 <div className="flex gap-3 mb-6 pb-6 border-b border-border">
-                  <img
-                    src={composerAvatar}
+                  <ProfileAvatar
+                    imageUrl={composerAvatarUrl}
+                    fallbackSource={composerEmail}
                     alt={composerDisplayName}
-                    className="w-8 h-8 object-cover border border-border shrink-0"
+                    boxClassName="w-8 h-8"
+                    textClassName="text-sm"
+                    className="shrink-0"
                   />
                   <div className="flex-1">
                     <textarea

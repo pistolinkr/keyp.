@@ -13,6 +13,7 @@ import { trendingTopics } from "@/lib/mockData";
 import type { Post } from "@/lib/mockData";
 import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
 import { formatPostedAgo } from "@/lib/postMeta";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import {
   getEngagementState,
   toggleArticleBookmark,
@@ -190,10 +191,12 @@ function PostItem({
             {/* Author */}
             <Link href={`/profile/${post.author.username}`}>
               <div className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors">
-                <img
-                  src={post.author.avatar}
+                <ProfileAvatar
+                  imageUrl={post.author.avatar}
+                  fallbackSource={post.author.username}
                   alt={post.author.displayName}
-                  className="w-5 h-5 object-cover border border-border"
+                  boxClassName="w-5 h-5"
+                  textClassName="text-[10px]"
                 />
                 <span className="text-xs font-medium">
                   {lang === 'ko' ? post.author.displayName : post.author.displayNameEn}

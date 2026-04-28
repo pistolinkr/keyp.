@@ -4,7 +4,7 @@
  * Structure: Fixed Left Sidebar (256px) + Main Content + Right Context Panel
  * Sharp 0px radius, 1px borders, Noto Sans KR UI
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,8 +13,9 @@ import {
   Home, Search, PenSquare, User, Sun, Moon,
   TrendingUp, Menu, X, Bell, LogOut
 } from "lucide-react";
-import { PLACEHOLDER_AVATAR, trendingTopics } from "@/lib/mockData";
-import { deriveCategoriesFromPosts, getPublishedPosts } from "@/lib/contentApi";
+import { trendingTopics } from "@/lib/mockData";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { deriveCategoriesFromPosts, getPublishedPosts, getMyProfileFromSupabase } from "@/lib/contentApi";
 import { NavbarScrollBlur } from "@/components/layout/NavbarScrollBlur";
 import { toast } from "sonner";
 
@@ -34,6 +35,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [navCategories, setNavCategories] = useState(() =>
     deriveCategoriesFromPosts([]),
   );
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState("");
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -46,6 +48,21 @@ export default function MainLayout({ children }: MainLayoutProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user || user.isLocalDev) {
+      setProfileAvatarUrl("");
+      return;
+    }
+    let cancelled = false;
+    void getMyProfileFromSupabase().then((p) => {
+      if (cancelled || !p) return;
+      setProfileAvatarUrl(p.avatar?.trim() ?? "");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.isLocalDev]);
+
   const navItems = [
     { href: "/feed", icon: Home, label: "피드", labelEn: "Feed" },
     { href: "/search", icon: Search, label: "검색", labelEn: "Search" },
@@ -56,10 +73,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
     typeof user?.userMetadata?.level === "number" ? user.userMetadata.level : 1;
   const sidebarXp =
     typeof user?.userMetadata?.xp === "number" ? user.userMetadata.xp : 0;
-  const userAvatar =
-    typeof user?.userMetadata?.avatar_url === "string"
-      ? user.userMetadata.avatar_url
-      : PLACEHOLDER_AVATAR;
+  const userAvatarUrl = useMemo(() => {
+    const fromProfile = profileAvatarUrl.trim();
+    if (fromProfile) return fromProfile;
+    const fromMeta =
+      typeof user?.userMetadata?.avatar_url === "string"
+        ? user.userMetadata.avatar_url.trim()
+        : "";
+    return fromMeta;
+  }, [profileAvatarUrl, user?.userMetadata?.avatar_url]);
   const userDisplayName =
     (typeof user?.userMetadata?.full_name === "string" && user.userMetadata.full_name) ||
     (typeof user?.userMetadata?.name === "string" && user.userMetadata.name) ||
@@ -260,13 +282,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <div className="p-3 border-t border-border flex items-stretch gap-3">
             <Link href={profileHref}>
               <button
-                className="w-12 h-12 shrink-0 overflow-hidden border border-border hover:border-primary transition-colors"
+                className="shrink-0 hover:opacity-90 transition-opacity"
                 title={lang === "ko" ? "프로필 보기" : "View profile"}
+                type="button"
               >
-                <img
-                  src={userAvatar}
+                <ProfileAvatar
+                  imageUrl={userAvatarUrl}
+                  fallbackSource={user?.email}
                   alt={userDisplayName}
-                  className="w-full h-full object-cover"
+                  boxClassName="w-12 h-12"
+                  textClassName="text-lg"
+                  className="hover:border-primary transition-colors"
                 />
               </button>
             </Link>

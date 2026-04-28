@@ -17,12 +17,7 @@ import {
   upsertOnboardingSurveyAnswers,
 } from "@/lib/contentApi";
 import { isSupabaseConfigured } from "@/lib/supabase";
-
-function avatarFallbackLetter(email: string | null | undefined): string {
-  const e = email?.trim();
-  if (!e) return "?";
-  return e.charAt(0).toLocaleUpperCase();
-}
+import { avatarFallbackLetter } from "@/lib/avatarUtils";
 
 const AVATAR_PREVIEW_MIN_PX = 40;
 /** Before first measure (loader or layout). */
@@ -83,14 +78,15 @@ export default function Custom() {
       setAvatarPreviewPx(Math.max(AVATAR_PREVIEW_MIN_PX, h));
     };
 
-    const ro = new ResizeObserver(read);
+    const ro = new ResizeObserver(() => read());
     ro.observe(el);
     read();
 
-    window.addEventListener("resize", read);
+    const onResize = () => read();
+    window.addEventListener("resize", onResize);
     return () => {
       ro.disconnect();
-      window.removeEventListener("resize", read);
+      window.removeEventListener("resize", onResize);
     };
   }, [bootLoading, profileOnboarding.loading, profileOnboarding.isOnboarded, success]);
 
