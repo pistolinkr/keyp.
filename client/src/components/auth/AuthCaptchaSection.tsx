@@ -95,7 +95,7 @@ export function AuthCaptchaSection({
   let widget: ReactNode;
   if (loadError) {
     widget = (
-      <p className="text-sm text-destructive text-center px-2">
+      <p className="text-sm text-destructive w-full min-w-0">
         {lang === "ko"
           ? "보안 확인을 불러오지 못했습니다. 새로고침하거나 광고·추적 차단을 잠시 끈 뒤 다시 시도해 주세요."
           : "Could not load the security check. Refresh, or pause ad blockers, and try again."}
@@ -104,7 +104,7 @@ export function AuthCaptchaSection({
   } else if (provider === "hcaptcha" && hcaptcha) {
     const H = hcaptcha;
     widget = (
-      <div className="w-full flex justify-center min-w-0">
+      <div className="w-full min-w-0 flex justify-center">
         <H
           key={resetKey}
           sitekey={siteKey}
@@ -120,23 +120,25 @@ export function AuthCaptchaSection({
   } else if (provider !== "hcaptcha" && turnstile) {
     const T = turnstile;
     widget = (
-      <T
-        key={resetKey}
-        siteKey={siteKey}
-        className="w-full max-w-full min-w-0"
-        onSuccess={handleSuccess}
-        onExpire={handleClear}
-        onError={handleClear}
-        options={{
-          theme: th,
-          language: lang === "ko" ? "ko" : "en",
-          size: "flexible",
-        }}
-      />
+      <div className="auth-turnstile-host w-full min-w-0">
+        <T
+          key={resetKey}
+          siteKey={siteKey}
+          className="w-full max-w-full min-w-0"
+          onSuccess={handleSuccess}
+          onExpire={handleClear}
+          onError={handleClear}
+          options={{
+            theme: th,
+            language: lang === "ko" ? "ko" : "en",
+            size: "flexible",
+          }}
+        />
+      </div>
     );
   } else {
     widget = (
-      <p className="text-xs text-muted-foreground text-center">
+      <p className="text-xs text-muted-foreground w-full min-w-0">
         {lang === "ko" ? "보안 확인 불러오는 중…" : "Loading security check…"}
       </p>
     );
@@ -157,12 +159,7 @@ export function AuthCaptchaSection({
             : "Complete the check to match bot protection enabled in Supabase."}
         </p>
       </div>
-      {/* Same outer chrome as verifying email + code input: one full-width bar, no nested frame */}
-      <div className="w-full min-w-0 border border-border bg-background px-3 py-2">
-        <div className="w-full min-w-0 flex flex-col items-stretch justify-center min-h-11 gap-1">
-          {widget}
-        </div>
-      </div>
+      <div className="w-full min-w-0">{widget}</div>
     </div>
   );
 }

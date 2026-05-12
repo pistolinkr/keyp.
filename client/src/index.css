@@ -988,3 +988,10 @@ header.keyp-navbar > * {
   -webkit-backdrop-filter: blur(10px) saturate(180%);
   backdrop-filter: blur(10px) saturate(180%);
 }
+
+/* Auth verify — Turnstile flexible: stretch widget + iframe to match input row width */
+.auth-turnstile-host .cf-turnstile,
+.auth-turnstile-host iframe {
+  width: 100% !important;
+  max-width: 100% !important;
+}
