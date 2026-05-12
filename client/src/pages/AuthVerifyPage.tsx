@@ -38,14 +38,13 @@ export default function AuthVerifyPage() {
 
   /** 8-character code validated by Edge function; required before 매직링크 플로우 */
   const [emailChallengeVerified, setEmailChallengeVerified] = useState(false);
-  /** User clicked 매직링크 보내기 → same slot becomes slide (/CF) UI */
+  /** User clicked 매직링크 보내기 → 슬라이드 설정 시 같은 자리가 슬라이드 UI로 전환; 완료 후 버튼 복귀 */
   const [magicGateOpen, setMagicGateOpen] = useState(false);
 
   const captchaConfigured = useMemo(() => isAuthCaptchaConfigured(), []);
   const slideGateEnv = useMemo(() => getSlideGateConfig(), []);
-  const slideGateReady = slideGateEnv !== null;
-  const captchaFlowBlockedMisconfig = captchaConfigured && !slideGateReady;
-  const [humanGatePassed, setHumanGatePassed] = useState(false);
+  /** 슬라이드 게이트 통과 후 같은 버튼으로 OTP 발송 */
+  const [magicSlideDone, setMagicSlideDone] = useState(false);
 
   const magicSendOnceGuard = useRef(false);
 
@@ -56,13 +55,11 @@ export default function AuthVerifyPage() {
   }, []);
 
   useEffect(() => {
-    setHumanGatePassed(false);
-  }, [captchaResetKey]);
-
-  useEffect(() => {
-    setHumanGatePassed(false);
     setMagicGateOpen(false);
     magicSendOnceGuard.current = false;
+    if (!emailChallengeVerified) {
+      setMagicSlideDone(false);
+    }
   }, [emailChallengeVerified]);
 
   useEffect(() => {
@@ -86,15 +83,13 @@ export default function AuthVerifyPage() {
     if (!email) return;
     if (magicSending || magicSendOnceGuard.current) return;
 
-    const needsCaptchaToken = captchaConfigured && slideGateReady;
+    const needsCaptchaToken = captchaConfigured;
     const tok = typeof captchaTokenRef.current === "string" ? captchaTokenRef.current.trim() : "";
-    if (needsCaptchaToken && !tok) return;
-
-    if (captchaFlowBlockedMisconfig) {
+    if (needsCaptchaToken && !tok) {
       toast.error(
         lang === "ko"
-          ? "운영 설정이 필요합니다: VITE_SLIDE_GATE_* 확인."
-          : "Server configuration incomplete: set VITE_SLIDE_*.",
+          ? "먼저 아래 보안 확인(Cloudflare)을 완료해 주세요."
+          : "Complete the Cloudflare security check below first.",
       );
       return;
     }
@@ -162,9 +157,7 @@ export default function AuthVerifyPage() {
     challengeEmail,
     lang,
     captchaConfigured,
-    slideGateReady,
     bumpCaptchaReset,
-    captchaFlowBlockedMisconfig,
   ]);
 
   const handleVerifyCodeOnly = async (event: FormEvent) => {
@@ -205,8 +198,6 @@ export default function AuthVerifyPage() {
       }
       setEmailChallengeVerified(true);
       setMagicGateOpen(false);
-      setHumanGatePassed(false);
-      bumpCaptchaReset();
       toast.success(
         lang === "ko" ? "코드가 확인되었습니다." : "Code verified.",
       );
@@ -220,23 +211,14 @@ export default function AuthVerifyPage() {
       toast.error(lang === "ko" ? "먼저 코드를 확인해 주세요." : "Verify the code first.");
       return;
     }
-    if (captchaFlowBlockedMisconfig) {
-      toast.error(
-        lang === "ko"
-          ? "VITE_SLIDE_GATE_* 설정이 필요합니다."
-          : "Set VITE_SLIDE_* variables to enable CAPTCHA.",
-      );
+    magicSendOnceGuard.current = false;
+    /** 슬라이드 미설정: 이 버튼 클릭 한 번으로 OTP 발송 */
+    if (!slideGateEnv) {
+      void sendMagicLink();
       return;
     }
-    magicSendOnceGuard.current = false;
-    setHumanGatePassed(false);
-    setCaptchaToken(null);
-    setCaptchaResetKey((k) => k + 1);
-    /** CAPTCHA 미사용: 슬라이드 없이 곧바로 OTP */
-    if (!slideGateEnv) {
-      if (captchaConfigured) {
-        return;
-      }
+    /** 슬라이드 통과 후: 같은 버튼으로 즉시 발송 */
+    if (magicSlideDone) {
       void sendMagicLink();
       return;
     }
@@ -257,7 +239,6 @@ export default function AuthVerifyPage() {
     }
     setEmailChallengeVerified(false);
     setMagicGateOpen(false);
-    setHumanGatePassed(false);
     bumpCaptchaReset();
     toast.success(
       lang === "ko"
@@ -274,8 +255,8 @@ export default function AuthVerifyPage() {
           <h1 className="font-bold text-2xl mb-1">{lang === "ko" ? "코드 인증" : "Code verification"}</h1>
           <p className="text-sm text-muted-foreground">
             {lang === "ko"
-              ? "먼저 메일 코드를 확인한 뒤 매직링크 받기에서 슬라이드 검증 후 메일을 보냅니다."
-              : "Verify your email code, then use Send magic link to slide-verify and receive the magic link email."}
+              ? "코드를 확인하고 Cloudflare 보안 확인까지 마친 뒤 매직링크 보내기를 누르면 메일로 링크가 갑니다. (슬라이드가 켜져 있으면 한 번 통과한 뒤 같은 버튼으로 보냅니다.)"
+              : "Verify your code and complete Cloudflare, then tap Send magic link. If slide verification is enabled, pass the slide once—then tap the same button again to send."}
           </p>
         </div>
 
@@ -323,29 +304,33 @@ export default function AuthVerifyPage() {
             </button>
           </form>
 
+          {captchaConfigured ? (
+            <div className="border-t border-border pt-4 space-y-2">
+              <AuthCaptchaSection
+                resetKey={captchaResetKey}
+                onTokenChange={setCaptchaToken}
+                disabled={magicSending}
+                lang={lang === "ko" ? "ko" : "en"}
+              />
+            </div>
+          ) : null}
+
           {emailChallengeVerified ? (
             <div className="space-y-3 border-t border-border pt-4">
-              {captchaFlowBlockedMisconfig ? (
-                <p className="text-sm text-destructive">
-                  {lang === "ko"
-                    ? "Cloudflare 단계를 쓰려면 VITE_SLIDE_GATE_* 값이 필요합니다."
-                    : "Set all VITE_SLIDE_* variables to enable CAPTCHA."}
-                </p>
-              ) : null}
-
               {!magicGateOpen && !magicSending ? (
                 <button
                   type="button"
                   disabled={
                     magicSending ||
-                    captchaFlowBlockedMisconfig ||
-                    (Boolean(captchaConfigured) && !slideGateReady)
+                    (captchaConfigured &&
+                      !(typeof captchaToken === "string" && captchaToken.trim()))
                   }
                   title={
-                    captchaConfigured && !slideGateEnv
+                    captchaConfigured &&
+                    !(typeof captchaToken === "string" && captchaToken.trim())
                       ? lang === "ko"
-                        ? "VITE_SLIDE_* 설정 필요"
-                        : "Set VITE_SLIDE_* variables"
+                        ? "먼저 위 보안 확인을 완료하세요."
+                        : "Complete the security check above."
                       : undefined
                   }
                   className="w-full h-11 keyp-btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -363,54 +348,40 @@ export default function AuthVerifyPage() {
 
               {magicGateOpen && slideGateEnv ? (
                 <div className="relative isolate min-h-[120px] w-full overflow-visible">
-                  {!humanGatePassed ? (
-                    <div className="relative z-30 w-full">
-                      <SlideHumanGate
-                        config={slideGateEnv}
-                        lang={lang === "ko" ? "ko" : "en"}
-                        disabled={magicSending}
-                        onHumanVerified={() => {
-                          setHumanGatePassed(true);
-                          const needsCf = captchaConfigured && slideGateReady;
-                          if (!needsCf) {
-                            void sendMagicLink();
-                          }
-                        }}
-                        onBotSuspected={() => {
-                          toast.error(
-                            lang === "ko"
-                              ? "패턴 감지: 일정 속도입니다. 속도 변화를 포함해 다시 시도해 주세요."
-                              : "Too steady. Try again with natural, uneven motion.",
-                          );
-                        }}
-                        onGestureIncomplete={() =>
-                          toast(
-                            lang === "ko"
-                              ? "끝까지 천천히 밀었다가 놓아 주세요."
-                              : "Slide further, then release.",
-                          )
-                        }
-                      />
-                    </div>
-                  ) : captchaConfigured && slideGateReady ? (
-                    <div className="relative z-10 mt-4 w-full min-w-0">
-                      <AuthCaptchaSection
-                        resetKey={captchaResetKey}
-                        onTokenChange={(tok) => {
-                          setCaptchaToken(tok);
-                          if (typeof tok === "string" && tok.trim()) {
-                            void sendMagicLink();
-                          }
-                        }}
-                        disabled={magicSending}
-                        lang={lang === "ko" ? "ko" : "en"}
-                      />
-                    </div>
-                  ) : null}
+                  <div className="relative z-30 w-full">
+                    <SlideHumanGate
+                      config={slideGateEnv}
+                      lang={lang === "ko" ? "ko" : "en"}
+                      disabled={magicSending}
+                      onHumanVerified={() => {
+                        setMagicSlideDone(true);
+                        setMagicGateOpen(false);
+                        toast(
+                          lang === "ko"
+                            ? "슬라이드 확인 완료. 매직링크 보내기를 다시 눌러 메일을 보냅니다."
+                            : "Slide verified. Tap Send magic link again to email the link.",
+                        );
+                      }}
+                      onBotSuspected={() => {
+                        toast.error(
+                          lang === "ko"
+                            ? "패턴 감지: 일정 속도입니다. 속도 변화를 포함해 다시 시도해 주세요."
+                            : "Too steady. Try again with natural, uneven motion.",
+                        );
+                      }}
+                      onGestureIncomplete={() =>
+                        toast(
+                          lang === "ko"
+                            ? "끝까지 천천히 밀었다가 놓아 주세요."
+                            : "Slide further, then release.",
+                        )
+                      }
+                    />
+                  </div>
                   <p className="mt-2 text-[11px] text-muted-foreground leading-snug">
                     {lang === "ko"
-                      ? "매직링크 버튼이 이 영역으로 바뀌며, 인증 완료 시 자동으로 발송됩니다."
-                      : "The send button becomes this verification area; the magic link sends when checks complete."}
+                      ? "통과 후 매직링크 보내기 버튼이 다시 나타납니다. Cloudflare 확인은 위와 같습니다."
+                      : "After you pass, the Send magic link button returns. Cloudflare stays above."}
                   </p>
                 </div>
               ) : null}

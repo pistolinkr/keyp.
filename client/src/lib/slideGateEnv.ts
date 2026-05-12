@@ -1,6 +1,6 @@
 /**
- * Slide gate before CAPTCHA — all knobs from Vite env (client bundle).
- * If VITE_SLIDE_GATE_ENABLED is not fully configured, Turnstile must not appear.
+ * Optional slide gate for magic-link send on `/auth/verify` — knobs from Vite env.
+ * Turnstile/CAPTCHA is shown independently of this (see AuthVerifyPage).
  */
 
 export type SlideGateConfig = {
@@ -35,7 +35,7 @@ function parseIntStrict(raw: string | undefined): number | null {
 
 /**
  * Strict: unless every required env is set alongside VITE_SLIDE_GATE_ENABLED=true, returns null
- * → caller must hide Cloudflare/Turnstile entirely.
+ * (no slide UI; magic link can still use Turnstile when configured).
  */
 export function getSlideGateConfig(): SlideGateConfig | null {
   const enabled = (import.meta.env.VITE_SLIDE_GATE_ENABLED as string | undefined)?.trim().toLowerCase();
