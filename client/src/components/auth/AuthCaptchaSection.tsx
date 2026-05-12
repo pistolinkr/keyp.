@@ -104,16 +104,18 @@ export function AuthCaptchaSection({
   } else if (provider === "hcaptcha" && hcaptcha) {
     const H = hcaptcha;
     widget = (
-      <H
-        key={resetKey}
-        sitekey={siteKey}
-        theme={th}
-        languageOverride={lang === "ko" ? "ko" : "en"}
-        size="normal"
-        onVerify={handleSuccess}
-        onExpire={handleClear}
-        onError={handleClear}
-      />
+      <div className="w-full flex justify-center min-w-0">
+        <H
+          key={resetKey}
+          sitekey={siteKey}
+          theme={th}
+          languageOverride={lang === "ko" ? "ko" : "en"}
+          size="normal"
+          onVerify={handleSuccess}
+          onExpire={handleClear}
+          onError={handleClear}
+        />
+      </div>
     );
   } else if (provider !== "hcaptcha" && turnstile) {
     const T = turnstile;
@@ -121,13 +123,14 @@ export function AuthCaptchaSection({
       <T
         key={resetKey}
         siteKey={siteKey}
+        className="w-full max-w-full min-w-0"
         onSuccess={handleSuccess}
         onExpire={handleClear}
         onError={handleClear}
         options={{
           theme: th,
           language: lang === "ko" ? "ko" : "en",
-          size: "normal",
+          size: "flexible",
         }}
       />
     );
@@ -154,8 +157,11 @@ export function AuthCaptchaSection({
             : "Complete the check to match bot protection enabled in Supabase."}
         </p>
       </div>
-      <div className="flex justify-center min-h-[72px] items-center border border-border bg-background py-3 px-2">
-        {widget}
+      {/* Same outer chrome as verifying email + code input: one full-width bar, no nested frame */}
+      <div className="w-full min-w-0 border border-border bg-background px-3 py-2">
+        <div className="w-full min-w-0 flex flex-col items-stretch justify-center min-h-11 gap-1">
+          {widget}
+        </div>
       </div>
     </div>
   );
