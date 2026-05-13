@@ -1,5 +1,3 @@
-import { supabase } from "@/lib/supabase";
-
 const CHALLENGE_EMAIL_KEY = "keyp.auth.challenge.email";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -26,12 +24,17 @@ function makeError(message: string, status?: number): SecondFactorResult {
   };
 }
 
-async function invokeSecondFactor(
-  action: "send_code" | "verify_code",
-  email: string,
-  code?: string,
-) {
-  const normalizedEmail = email.trim().toLowerCase();
+type EdgeSecondFactorPayload = {
+  action: string;
+  email: string;
+  code?: string;
+  locale?: "ko" | "en";
+  challengeId?: string;
+  selectedColorKey?: string;
+};
+
+async function postSecondFactor(payload: EdgeSecondFactorPayload): Promise<SecondFactorResult> {
+  const normalizedEmail = payload.email.trim().toLowerCase();
   if (!normalizedEmail) return makeError("invalid_email", 400);
   if (!supabaseUrl || !supabaseAnonKey) return makeError("supabase_not_configured", 500);
 
@@ -44,9 +47,8 @@ async function invokeSecondFactor(
         Authorization: `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
-        action,
+        ...payload,
         email: normalizedEmail,
-        ...(code ? { code: code.trim().toUpperCase() } : {}),
       }),
     });
 
@@ -64,12 +66,36 @@ async function invokeSecondFactor(
   }
 }
 
-export async function sendEmailChallengeCode(email: string) {
-  return invokeSecondFactor("send_code", email);
+export async function sendEmailChallengeCode(email: string, locale?: "ko" | "en") {
+  return postSecondFactor({
+    action: "send_code",
+    email,
+    ...(locale === "ko" || locale === "en" ? { locale } : {}),
+  });
 }
 
 export async function verifyEmailChallengeCode(email: string, code: string) {
-  return invokeSecondFactor("verify_code", email, code);
+  return postSecondFactor({ action: "verify_code", email, code });
+}
+
+export async function beginSqQuarterChallenge(email: string) {
+  return postSecondFactor({ action: "sq_begin", email });
+}
+
+export async function verifySqQuarterChallenge(input: {
+  email: string;
+  challengeId: string;
+  selectedColorKey: string;
+  code: string;
+}) {
+  const { email, challengeId, selectedColorKey, code } = input;
+  return postSecondFactor({
+    action: "sq_verify",
+    email,
+    challengeId,
+    selectedColorKey,
+    code,
+  });
 }
 
 export function setChallengeEmail(email: string) {
@@ -77,7 +103,7 @@ export function setChallengeEmail(email: string) {
   try {
     window.sessionStorage.setItem(CHALLENGE_EMAIL_KEY, email.trim().toLowerCase());
   } catch {
-    // Ignore storage failures.
+    /* ignore */
   }
 }
 
@@ -95,6 +121,6 @@ export function clearChallengeEmail() {
   try {
     window.sessionStorage.removeItem(CHALLENGE_EMAIL_KEY);
   } catch {
-    // Ignore storage failures.
+    /* ignore */
   }
 }

@@ -1,0 +1,865 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "KIWbr",
+      "x": 0,
+      "y": 0,
+      "name": "Email Template: kr",
+      "width": 600,
+      "fill": "#f5f5f500",
+      "layout": "vertical",
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "N1OvIX",
+          "name": "emailCard",
+          "width": "fill_container",
+          "fill": "#FFFFFF",
+          "cornerRadius": 12,
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "WpDfS",
+              "name": "topBar",
+              "width": 422,
+              "height": 4,
+              "fill": "#e9a91f"
+            },
+            {
+              "type": "frame",
+              "id": "tMr5k",
+              "name": "contentArea",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "padding": [
+                48,
+                48,
+                32,
+                48
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "iDyvT",
+                  "name": "heading",
+                  "fill": "#1A1A1A",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "SQ 이중인증 코드",
+                  "lineHeight": 1.2,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 32,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "Syqkf",
+                  "name": "bodyText",
+                  "fill": "#666666",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "사용자 인증 페이지에서 요구하는 색상에 맞는 조건을 따라 인증을 마쳐 로그인을 완료하세요.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "d5S3Q",
+                  "name": "Frame 1",
+                  "gap": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "K1aQZ",
+                      "name": "Frame 2",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "L0jUbU",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#FFD6E7",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#FFADD0"
+                          },
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "pODXa",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "A1B2C3D4",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "jQW2Q",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#D6EEFF",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#AACCE8"
+                          },
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "p6zEpy",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "AB14C3D2",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sGP94",
+                      "name": "Frame 3",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nL5Ve",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#D6F5E3",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#A8E6C3"
+                          },
+                          "layout": "vertical",
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mRqvS",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "C3A1B2D4",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "EVEbk",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#E8D6FF",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#C9A8E6"
+                          },
+                          "layout": "vertical",
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "G3ydJ",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "DBC321A4",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "wrCJ6",
+                  "name": "disclaimerText",
+                  "fill": "#999999",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "해당 플랫폼에서 코드 요청을 한 것이 아니라면, 이 메일을 무시하세요.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "g4S96W",
+                  "name": "footerText",
+                  "fill": "#BBBBBB",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Secured Email template, created by g.gear service vanguard",
+                  "lineHeight": 1.5,
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "c4Xbr",
+      "x": 680,
+      "y": 0,
+      "name": "Magic Link Email: kr",
+      "width": 600,
+      "fill": "#f5f5f500",
+      "layout": "vertical",
+      "padding": 40,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "C10eU",
+          "name": "magicCard",
+          "width": "fill_container",
+          "fill": "#FFFFFF",
+          "cornerRadius": 12,
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "aVKYX",
+              "name": "magicTopBar",
+              "width": 422,
+              "height": 4,
+              "fill": "#e9a91f",
+              "justifyContent": "center",
+              "alignItems": "center"
+            },
+            {
+              "type": "frame",
+              "id": "IesWL",
+              "name": "magicContent",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "padding": [
+                48,
+                48,
+                32,
+                48
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "b664JY",
+                  "name": "magicHeading",
+                  "fill": "#1A1A1A",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "매직링크로 로그인하기",
+                  "lineHeight": 1.2,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 32,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "s39Ec",
+                  "name": "magicBody",
+                  "fill": "#666666",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "아래 버튼을 눌러 Keyp를 여세요. 비밀번호가 필요 없습니다. 이 링크는 곧 만료됩니다.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "teMon",
+                  "name": "buttonFrame",
+                  "width": "fill_container",
+                  "padding": [
+                    8,
+                    0
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "f6w2r",
+                      "name": "ctaButton",
+                      "width": 258,
+                      "fill": "#e9a91f",
+                      "cornerRadius": 999,
+                      "padding": [
+                        16,
+                        48
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pirEK",
+                          "name": "buttonText",
+                          "fill": "#1A1A1A",
+                          "content": "클릭하고 이제 저기에 킵.",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "rf6tt",
+                  "name": "templateNote",
+                  "fill": "#CCCCCC",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Template variable: {{ .ConfirmationURL }}",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "GJBmU",
+                  "name": "magicDisclaimer",
+                  "fill": "#999999",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "로그인을 시도하지 않으셨다면 이 이메일을 무시하세요. 누군가 실수로 주소를 잘못 입력했을 수 있습니다.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "J0q0fU",
+                  "name": "magicFooter",
+                  "fill": "#BBBBBB",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Secured Email template, created by g.gear service vanguard",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "q9eFE",
+      "x": 680,
+      "y": 606,
+      "name": "Magic Link Email: en",
+      "width": 600,
+      "fill": "#f5f5f500",
+      "layout": "vertical",
+      "padding": 40,
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "inzCn",
+          "name": "magicCard",
+          "width": "fill_container",
+          "fill": "#FFFFFF",
+          "cornerRadius": 12,
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "ml1yF",
+              "name": "magicTopBar",
+              "width": 422,
+              "height": 4,
+              "fill": "#e9a91f"
+            },
+            {
+              "type": "frame",
+              "id": "B5Z1J",
+              "name": "magicContent",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "padding": [
+                48,
+                48,
+                32,
+                48
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mYBMK",
+                  "name": "magicHeading",
+                  "fill": "#1A1A1A",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Login with magic link",
+                  "lineHeight": 1.2,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 32,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "gQz6N",
+                  "name": "magicBody",
+                  "fill": "#666666",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tap the button below to open Keyp—no password needed. This link expires soon.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "tJL7J",
+                  "name": "buttonFrame",
+                  "width": "fill_container",
+                  "padding": [
+                    8,
+                    0
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "e785l",
+                      "name": "ctaButton",
+                      "width": 258,
+                      "fill": "#e9a91f",
+                      "cornerRadius": 999,
+                      "padding": [
+                        16,
+                        48
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "X7AoM",
+                          "name": "buttonText",
+                          "fill": "#1A1A1A",
+                          "content": "Click and start to keyp.",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "T8obH3",
+                  "name": "templateNote",
+                  "fill": "#CCCCCC",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Template variable: {{ .ConfirmationURL }}",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "GKEWP",
+                  "name": "magicDisclaimer",
+                  "fill": "#999999",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "If you didn't try to sign in, ignore this email. Someone may have typed your address by mistake.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "T9ScPM",
+                  "name": "magicFooter",
+                  "fill": "#BBBBBB",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Secured Email template, created by g.gear service vanguard",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "H9dEYZ",
+      "x": 0,
+      "y": 606,
+      "name": "Email Template: en",
+      "width": 600,
+      "fill": "#f5f5f500",
+      "layout": "vertical",
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "W4m7N",
+          "name": "emailCard",
+          "width": "fill_container",
+          "fill": "#FFFFFF",
+          "cornerRadius": 12,
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "RBoZZ",
+              "name": "topBar",
+              "width": 422,
+              "height": 4,
+              "fill": "#e9a91f"
+            },
+            {
+              "type": "frame",
+              "id": "Rk4gy",
+              "name": "contentArea",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "padding": [
+                48,
+                48,
+                32,
+                48
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "wJpzG",
+                  "name": "heading",
+                  "fill": "#1A1A1A",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "SQ 2FA Code",
+                  "lineHeight": 1.2,
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 32,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "w67jl",
+                  "name": "bodyText",
+                  "fill": "#666666",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Please complete the verification by following the color-matching instructions on the authentication page, then finish logging in.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "M3LcTB",
+                  "name": "Frame 1",
+                  "gap": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "P4ZlTB",
+                      "name": "Frame 2",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "GnjsO",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#FFD6E7",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#FFADD0"
+                          },
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "JRbas",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "A1B2C3D4",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "meO0u",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#D6EEFF",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#AACCE8"
+                          },
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Kraav",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "AB14C3D2",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HHpKX",
+                      "name": "Frame 3",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Siura",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#D6F5E3",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#A8E6C3"
+                          },
+                          "layout": "vertical",
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Hqc1C",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "C3A1B2D4",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "XgvQk",
+                          "name": "tokenBox",
+                          "width": 205,
+                          "height": 52,
+                          "fill": "#E8D6FF",
+                          "cornerRadius": 12,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#C9A8E6"
+                          },
+                          "layout": "vertical",
+                          "padding": [
+                            32,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "NiMzb",
+                              "name": "tokenText",
+                              "fill": "#1A1A1A",
+                              "content": "DBC321A4",
+                              "fontFamily": "Inter",
+                              "fontSize": 32,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "EEz86",
+                  "name": "disclaimerText",
+                  "fill": "#999999",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "If you didn't request this code, you can safely ignore this email.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "f5FKBq",
+                  "name": "footerText",
+                  "fill": "#BBBBBB",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Secured Email template, created by g.gear service vanguard",
+                  "lineHeight": 1.5,
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -47,7 +47,7 @@ export default function AuthPage() {
     }
 
     setSubmitting(true);
-    const { error } = await sendEmailChallengeCode(normalizedEmail);
+    const { error } = await sendEmailChallengeCode(normalizedEmail, lang === "ko" ? "ko" : "en");
     setSubmitting(false);
 
     if (error) {

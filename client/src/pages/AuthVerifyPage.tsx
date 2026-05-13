@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { AuthCaptchaSection } from "@/components/auth/AuthCaptchaSection";
 import { SlideHumanGate } from "@/components/auth/SlideHumanGate";
+import { SqQuarterPanel } from "@/components/auth/SqQuarterPanel";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   clearChallengeEmail,
@@ -46,7 +47,13 @@ export default function AuthVerifyPage() {
   /** 슬라이드 게이트 통과 후 같은 버튼으로 OTP 발송 */
   const [magicSlideDone, setMagicSlideDone] = useState(false);
 
+  /** SQ 2FA gate (Secured Quarter): after mailbox code, before magic link + CAPTCHA */
+  const [sqQuarterPassed, setSqQuarterPassed] = useState(false);
   const magicSendOnceGuard = useRef(false);
+
+  useEffect(() => {
+    if (!emailChallengeVerified) setSqQuarterPassed(false);
+  }, [emailChallengeVerified]);
 
   const bumpCaptchaReset = useCallback(() => {
     setCaptchaToken(null);
@@ -229,7 +236,7 @@ export default function AuthVerifyPage() {
     const email = resolveChallengeEmail(challengeEmail);
     if (!email) return;
     setResending(true);
-    const result = await sendEmailChallengeCode(email);
+    const result = await sendEmailChallengeCode(email, lang === "ko" ? "ko" : "en");
     setResending(false);
     if (result.error) {
       toast.error(
@@ -255,8 +262,8 @@ export default function AuthVerifyPage() {
           <h1 className="font-bold text-2xl mb-1">{lang === "ko" ? "코드 인증" : "Code verification"}</h1>
           <p className="text-sm text-muted-foreground">
             {lang === "ko"
-              ? "코드를 확인하고 Cloudflare 보안 확인까지 마친 뒤 매직링크 보내기를 누르면 메일로 링크가 갑니다. (슬라이드가 켜져 있으면 한 번 통과한 뒤 같은 버튼으로 보냅니다.)"
-              : "Verify your code and complete Cloudflare, then tap Send magic link. If slide verification is enabled, pass the slide once—then tap the same button again to send."}
+              ? "메일의 8자 코드 입력 → 같은 창에서 SQ(Secured Quarter) 색상 버튼 탭 후 표시되는 8자(문자+숫자) 제출 → Cloudflare 확인 → 매직링크 순입니다. 새 창/새 탭 없이 진행합니다. (슬라이드 활성 시 한 번 통과 후 같은 버튼으로 재전송.)"
+              : "Mailbox 8-character code → on this page (same window), SQ (Secured Quarter): tap the instructed color tile, submit its 8-character code → CAPTCHA → magic link. Slide gate: pass once if enabled, tap the same button again to send."}
           </p>
         </div>
 
@@ -304,7 +311,7 @@ export default function AuthVerifyPage() {
             </button>
           </form>
 
-          {captchaConfigured ? (
+          {captchaConfigured && emailChallengeVerified && sqQuarterPassed ? (
             <div className="border-t border-border pt-4 space-y-2">
               <AuthCaptchaSection
                 resetKey={captchaResetKey}
@@ -315,7 +322,17 @@ export default function AuthVerifyPage() {
             </div>
           ) : null}
 
-          {emailChallengeVerified ? (
+          {emailChallengeVerified && !sqQuarterPassed ? (
+            <div className="border-t border-border pt-4 space-y-3">
+              <SqQuarterPanel
+                email={resolveChallengeEmail(challengeEmail)}
+                lang={lang === "ko" ? "ko" : "en"}
+                onPassed={() => setSqQuarterPassed(true)}
+              />
+            </div>
+          ) : null}
+
+          {emailChallengeVerified && sqQuarterPassed ? (
             <div className="space-y-3 border-t border-border pt-4">
               {!magicGateOpen && !magicSending ? (
                 <button
@@ -387,7 +404,6 @@ export default function AuthVerifyPage() {
               ) : null}
             </div>
           ) : null}
-
           <button
             type="button"
             onClick={resendCode}

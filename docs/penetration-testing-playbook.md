@@ -35,7 +35,7 @@ This document is scoped to **this repository**: Vite + React client, optional Ex
 - [ ] **Supabase URL** and confirm you have **two** test users (User A / User B) with known passwords or magic-link flow.
 - [ ] **Anon key** (from public client bundle — expected); confirm you are **not** using service role in the browser.
 - [ ] **Vercel / API** base for AI: same origin vs `VITE_AI_API_BASE_URL` — document which is used in this run.
-- [ ] Edge function URLs (e.g. `.../functions/v1/engagement`, `.../functions/v1/auth-second-factor`).
+- [ ] Edge function URLs (e.g. `.../functions/v1/engagement`, `.../functions/v1/auth-second-factor`; include `sq_begin` / `sq_verify` payloads on staging).
 - [ ] Burp / ZAP / curl + `jq` available; optional Playwright for XSS checks.
 
 ---
